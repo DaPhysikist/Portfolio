@@ -1,0 +1,3 @@
+## Week Zero: Project Inception
+
+This week I came up with the idea for my project after thinking back on an idea I had in the past about traffic collisions. I wanted to use embedded concepts such as wireless communication, RTOS and board/peripheral bring up to familiriaze myself with the skills I need to become an embedded engineer. After some hours thinking and researching existing ideas, I decided what I wanted to do, hoping that my idea was unique.
