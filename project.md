@@ -28,7 +28,7 @@ A paper by the National Institute of Health:<br/>
 
 This article by Nordic Semiconductor describes the range of BLE 5.x, which should be more than enough to cover the entire width (all lanes) of most highways/freeways/roads.<br/>
 
-Looking more at the Bluetooth paper I found last week, what I want to specifically employ is connectionless direction finding using Bluetooth periodic advertising. This will most likely utilize the Angle of Departure methodology with multiple Bluetooth nodes set up along the side of the road (maybe on at each streetlight) to form a mesh and each one will detect the AoD for more accurate positioning.<br/>
+Looking more at the Bluetooth paper I found last week, what I want to specifically employ is connectionless direction finding using Bluetooth periodic advertising. This will most likely utilize the Angle of Arrival methodology with multiple Bluetooth nodes set up along the side of the road (maybe on at each streetlight) to form a mesh and each one will detect the AoD for more accurate positioning.<br/>
 
 After some more research, I found this video and SDK by Nordic Semiconductor on Bluetooth Direction Finding:<br/>
 [Video by Nordic](https://youtube.com/watch?v=AtS6HsrUgZQ&feature=shared)<br/>
