@@ -3,7 +3,10 @@
 This week I came up with the idea for my project after thinking back on an idea I had in the past about traffic collisions. I wanted to use embedded concepts such as wireless communication, RTOS and board/peripheral bring up to familiriaze myself with the skills I need to become an embedded engineer. I also wanted to apply my interest in light and communication-based physics. After some hours thinking and researching existing ideas, I decided what I wanted to do, hoping that my idea was unique.
 
 My initial research sources:
-https://www.bluetooth.com/bluetooth-resources/bluetooth-direction-finding/ 
+
+[Technical Paper on Bluetooth Direction Finding](https://www.bluetooth.com/bluetooth-resources/bluetooth-direction-finding/) 
+
+I did not have much time this week due to the final for my summer class, but I will resume with my research next week.
 
 ## Week One: Further Research and Initial Material Procurement
 
@@ -22,3 +25,11 @@ Another company developing V2X technology who are an inspiration to my project, 
 
 A paper by the National Institute of Health:
 [NIH Paper](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7865993/)
+
+This article by Nordic Semiconductor describes the range of BLE 5.x, which should be more than enough to cover the entire width (all lanes) of most highways/freeways/roads.
+
+Looking more at the Bluetooth paper I found last week, what I want to specifically employ is connectionless direction finding using Bluetooth periodic advertising. This will most likely utilize the Angle of Departure methodology with multiple Bluetooth nodes set up along the side of the road (maybe on at each streetlight) to form a mesh and each one will detect the AoD for more accurate positioning.
+
+After some more research, I found this video and SDK by Nordic Semiconductor on Bluetooth Direction Finding:
+[Video by Nordic](https://youtube.com/watch?v=AtS6HsrUgZQ&feature=shared)
+[Nordic SDK](https://github.com/nrfconnect/sdk-nrf/tree/main/samples/bluetooth/direction_finding_connectionless_rx)
