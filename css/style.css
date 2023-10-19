@@ -46,10 +46,6 @@ body {
     line-height: 1.6;
 }
 
-section {
-    padding: 5em 2em;
-}
-
 img {
     display: block;
     max-width: 100%;
@@ -224,6 +220,14 @@ header {
 .hamburger::after { bottom: 6px; }
 
 
+.main-page {
+    padding: 4em 2em;
+}
+
+.project-page {
+    padding: 1em 2em;
+}
+
 /* Intro section */
 .intro {
     position: relative;
@@ -314,6 +318,12 @@ header {
 .project__img:hover{
     transform: scale(1.2);
     opacity: .75;
+}
+
+.description {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
 /* Footer */
