@@ -31,12 +31,18 @@
             <h1 class="section__title section__title--projects">Triton Robocup</h1>
 
             <p>
-                Triton Robocup is a project team under the IEEE student org that is making robots to compete in the international robotic soccer competition, Robocup. I joined this team in Fall 2022 with the intent to grow my knowledge of robotics and embedded systems.
+                Triton Robocup is a project team under the IEEE student org that is making robots to compete in the international robotic soccer competition, Robocup. I joined this team in Fall 2022 with the intent to grow my knowledge of robotics and embedded systems. When I first started, there was a steep learning curve to deal with. Prior to joining the team, my only embedded related experience had been working with Raspberry Pis, and I not yet even learned how to program in C, so lower level microcontroller programming was new and challenging for me to understand. 
             </p>
 
             <p>
-                When I first started, there was a steep learning curve to deal with. Prior to joining the team, my only embedded related experience had been working with Raspberry Pi's, and I not yet even learned how to program in C, so lower level microcontroller programming was new, and challenging for me to understand.
+                I spent several weeks exploring the IDE toolchain, HAL functions, and the limited microcontroller documentation we had with other team members in order to figure out what we needed to do to communicate with different peripherals. Most of us were new to STM32, so it took some time before we were finally able to get some LEDs to flash, which I was able to do after deciphering the GPIO pinout of the microcontroller from a vague diagram on the PDF from Robomaster.
             </p>
+
+            <p>
+                After that, we spent more time reading up on the CAN protocol and the CAN functions inbuilt into STM's HAL. I worked with another team member to determine the functions that we needed to use to enable and initialize CAN, then I finally implemented the motor speed transmission code after looking at some of Robomaster's demo code. The demo code specifically for sending CAN messages was tricky to find as it was not in the main folder and the file that we expected it to be in, but in a file in a different folder that we were not aware of for a while. In addition to us learning everything we needed for CAN on the fly without much resources to go by, we also had to power the motors correctly with GPIO and then physically set the motor controller IDs so that we could set a speed for a specific motor.
+            </p>
+
+            <p>We were not able to finish in time to qualify in 2023, but I grew a lot as an embedded developer during this process, and meticulously documented all my findings and steps for future years. Going into the 2023-2024 school year, I am the new embedded software lead for Robocup, and intend to build out our entire functionality to push us into qualifcation for the 2024 Robocup competition.</p>
         </section>
 
 

@@ -28,7 +28,31 @@
         </header>
 
         <section class="project-page description" id="projects">
-            <h1 class="section__title section__title--projects">You Lost It Project</h2>
+            <h1 class="section__title section__title--projects">You Lost It Project</h1>
+
+            <p>
+                "You Lost It" is a series of smaller projects that will eventually culminate in the development of an Airtag-like system that sends out a beacon of its location. All of these projects are developed on a STM32 B-L475E-IOT01A1 board, which has all the required peripherals baked into the board itself along with the microcontroller. The IDE we are using is STM32CubeIDE. These projects are part of a class that I am taking at UCSD, CSE 190: Wireless Embedded Systems. As I progress with each project, I plan to detail all of them on this page.
+            </p>
+
+            <h3>
+                Project One: Blinkenlights
+            </h3>
+
+            <p>
+                This project involved us implementing three different components: the LEDs, the timer, and the app itself. Everything was implemented from scratch with no HAL abstraction. For the LEDs, we had to use memory-mapped IO (basically setting values in different registers to enable hardware functionality) to enable the bus and set GPIO settings for initializing the LEDs in a function called leds_init. We also used MMIO to turn the LEDs on or off, based on binary parameters that we passed to a function we wrote called leds_set.
+            </p>
+
+            <p>
+                For the timer, we wrote three functions: one to initialize the timer called timer_init, another to reset the timer called timer_reset, and one more to set the amount of milliseconds that the timer would count up to before triggering an interrupt (a function that gets executed when a specific event takes place), called timer_set_ms. We used MMIO for all of these, with the trickiest parts involving figuring out from the datasheet what registers that we needed to set to enable timer functionality, as well as figuring out the prescaler settings that we needed to use to utlize the microcontroller's inbuilt clock for incrementing the timer.
+            </p>
+
+            <p>
+                Finally, in the main file, we initialized the LEDs and timer by calling the respective functions, and set the timer to count to 50 milliseconds because we wanted the LEDs to blink at 20 Hz. We defined a message array to hold the contents of the message that we wished to transmit blinking the LED lights, and an index counter to keep track of where we were in the array. Next, we wrote out the interrupt handler function (what gets called when the interrupt is triggered), which resets the interrupt flag, transmits the respective section of the message to the LEDs for blinking, and then increments the counter. When the counter reaches the end of the message array, it is reset so that the message loops over and over.
+            </p>
+
+            <p>
+                Our end result was a small embedded app the would blink the LEDs to transmit an encoded message containing an 8 bit header (4 message elements) and a 16 bit payload (8 message elements) over and over again.
+            </p>
         </section>
 
         <!-- Footer -->
