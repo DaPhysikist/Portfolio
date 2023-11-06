@@ -124,6 +124,17 @@ h3 {font-size: var(--fs-h3)}
     margin-bottom: 1em;
     margin: 1em auto;
     max-width: 1100px;
+    text-align:center;
+}
+
+.section__subtitle--projects_TLDR {
+    background: var(--clr-accent);
+    padding: .25% 1%;
+    font-family: var(--ff-secondary);
+    margin-bottom: 1em;
+    margin: 1em auto;
+    max-width: 100px;
+    text-align:center;
 }
 
 /* header */
@@ -230,7 +241,7 @@ header {
 
 
 .main-page {
-    padding: 4em 2em;
+    padding: 2em 2em;
 }
 
 .project-page {
@@ -290,11 +301,11 @@ header {
 
 .my-projects {
     background-color: var(--clr-light);
-    text-align: center;
 }
 
 .section__title--projects {
     font-weight: var(--fw-bold);
+    text-align: center;
 }
 
 
@@ -306,6 +317,71 @@ header {
 .project__item {
     background: var(--clr-accent);
     overflow: hidden;
+}
+
+.insta__body {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: stretch; 
+    gap: 20px; 
+    max-width: 800px; 
+    margin: 0 auto; 
+}
+
+.instagram-post {
+    flex: 1; 
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center; 
+}
+
+.insta_caption {
+    margin-top: 5px;
+}
+
+.instagram-post blockquote.instagram-media {
+    flex: 1;
+    height: 100%;
+    max-width: 100%; 
+}
+
+.instagram-media {
+    height: 530px;
+    max-width: 100%;
+    width: 100%;
+}
+
+.desc_body {
+    text-align:justify;
+    color: #333;
+}
+
+.img__body {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: stretch; 
+    gap: 20px; 
+    max-width: 1600px; 
+    margin: 0 auto; 
+}
+
+.img__section {
+    flex: 1; 
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.prj_image {
+    height: 450px;
+    max-width: 100%;
+    width: 100%; 
 }
 
 @media (min-width: 1500px) {
@@ -348,7 +424,7 @@ transform: translate(-50%, -50%);
 text-align: center;
 }
 
-.project__itemL:focus {
+.project__item:focus {
     position: relative;
     z-index: 2;
 }
