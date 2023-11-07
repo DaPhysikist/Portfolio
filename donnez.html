@@ -30,21 +30,42 @@
         <section class="project-page description" id="projects">
             <h1 class="section__title section__title--projects">Donnez App</h1>
 
-            <p>
+            <p class="desc_body">
                 Donnez is an app that I developed during Spring 2022 as my passion project for an engineering class that I took back in high school. The idea for this app was to enable positive acts by its users by allowing users to send each other points, which would be stored and tracked on a local database on the user's phone, and then pushed to the cloud the next time that the user connected to the Internet.
             </p>
 
-            <p>
+            <p class="desc_body">
                 I coded this app using Android Studio and the Kotlin programming language, both of which I had never used before this project, so there was quite a learning curve that I had to adapt to in order to understand how the development environment worked as well as the syntax used in Kotlin. For the frontend, I followed a combination of different online tutorials and resources to create the login screen and other elements of the app, including the RecyclerView used to display point records from the database. The UI of the app was coded in XML.
             </p>
 
-            <p>
+            <p class="desc_body">
                 For the backend of the app, I used the AWS Amplify API to make my job a lot easier. I used DynamoDB with GraphQL for database management within Amplify and AWS Cognito for user registration and login with multi-factor authentication required to create an account. For the actual point sending functionality, I wanted users to be able to send points to each other even when they did not have an Internet or WiFi connection, so I opted to use the Android Nearby Connections API, which is a peer-to-peer networking API for android phones that allows two phones to directly connect to each other to transmit and receive data. Within the app, I added buttons to enable users to connect and disconnect to each other and a field where they could enter the amount of points that they wished to send before pressing the send button. When the points are received they are added to the user's total.
             </p>
 
-            <p>
+            <p class="desc_body">
                 Developing this app was simultaneously fun and frustrating, as I had only a general idea of the different features I wanted to incorporate into the app, some prior experience with AWS (I had gotten my Cloud Certified Practioner certificate a few months prior), and basic object oriented programming experience from AP Computer Science A when I started, and had to learn everything else on the go. I spent a lot of time during the two months that I worked on the app researching API docs and tutorials, and debugging when code did not work. I also had to do this all in the time that I could spare from my homework and activities, which was not a lot. If I had more time, I would have incorporated additional features like a profile screen for example, but overall, I am pretty satisfied with what I was able to accomplish.
             </p>
+
+            <br>
+
+            <div class="img__body">
+                <div class="img__section">
+                   <img src="img\Donnez\Screenshot_20231017-074631.png" class="prj_image">
+                   <p>The login screen of the app.</p>
+                </div>
+                <div class="img__section">
+                    <img src="img\Donnez\Screenshot_20231017-074727.png" class="prj_image">
+                    <p>Logging in to the app.</p>
+                </div>
+                <div class="img__section">
+                    <img src="img\Donnez\Screenshot_20231017-075944.png" class="prj_image">
+                    <p>Connecting to another nearby user using Nearby Connections.</p>
+                </div>
+                <div class="img__section">
+                    <img src="img\Donnez\Screenshot_20231017-080020.png" class="prj_image">
+                    <p>Sending points over to the other user.</p>
+                </div>
+            </div>
         </section>
 
         <!-- Footer -->
