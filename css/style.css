@@ -440,6 +440,24 @@ text-align: center;
     flex-direction: column;
 }
 
+.tldr-container {
+    display: flex;
+    align-items: center;
+}
+
+.tldr-icon {
+    margin-right: 10px; 
+}
+
+.tldr-icon img {
+    width: 50px; 
+    height: 50px; 
+}
+
+.tldr-details {
+    flex: 1; 
+}
+
 /* Footer */
 
 .footer {
