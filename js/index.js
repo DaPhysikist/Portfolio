@@ -1,12 +1,10 @@
-const navToggle = document.querySelector('.nav-toggle');
-const navLinks = document.querySelectorAll('.nav__link')
+// Theme Toggle Script
+const themeToggle = document.getElementById('theme-toggle');
+const lightIcon = document.getElementById('light-icon');
+const darkIcon = document.getElementById('dark-icon');
 
-navToggle.addEventListener('click', () => {
-    document.body.classList.toggle('nav-open');
+themeToggle.addEventListener('click', () => {
+    document.body.classList.toggle('dark-mode');
+    lightIcon.style.display = lightIcon.style.display === 'none' ? 'block' : 'none';
+    darkIcon.style.display = darkIcon.style.display === 'none' ? 'block' : 'none';
 });
-
-navLinks.forEach(link => {
-    link.addEventListener('click', () => {
-        document.body.classList.remove('nav-open');
-    })
-})
