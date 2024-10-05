@@ -5,7 +5,7 @@ const darkIcon = document.getElementById('dark-icon');
 
 // Function to apply the stored theme on page load
 function applyStoredTheme() {
-    const storedTheme = localStorage.getItem('theme');
+    const storedTheme = window.localStorage.getItem('theme');
     const body = document.body;
 
     if (storedTheme === 'dark') {
@@ -26,11 +26,11 @@ themeToggle.addEventListener('click', () => {
     if (body.classList.toggle('dark-mode')) {
         lightIcon.style.display = 'none';
         darkIcon.style.display = 'block';
-        localStorage.setItem('theme', 'dark'); // Store the dark theme
+        window.localStorage.setItem('theme', 'dark'); // Store the dark theme
     } else {
         lightIcon.style.display = 'block';
         darkIcon.style.display = 'none';
-        localStorage.setItem('theme', 'light'); // Store the light theme
+        window.localStorage.setItem('theme', 'light'); // Store the light theme
     }
 });
 
