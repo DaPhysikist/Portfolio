@@ -316,6 +316,12 @@ body.dark-mode .project-card {
     margin: 10px 0; /* Margin around title */
 }
 
+.project-subtitle {
+    font-size: 16px;
+    color: #888; /* Lighter color for subtitle */
+    margin-top: 0;
+}
+
 .project-text {
     font-size: 1rem; /* Summary font size */
     margin: 10px 0; /* Margin around text */
