@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Pranav Mehta Portfolio</title>
+        <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/normalize/7.0.0/normalize.min.css">
+        <script src="https://kit.fontawesome.com/a9c4aa9568.js" crossorigin="anonymous"></script>
+
+        <!-- -->
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:400,900|Source+Sans+Pro:300,900&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="css/style.css">
+
+    </head>
+    <body>
+        <header>
+            <button class="nav-toggle" aria-label="toggle navigation">
+                <span class="hamburger"></span>
+            </button>
+            <nav class="nav">
+                <ul class="nav__list">
+                    <li class="nav__item"><a href="index.html#home" class="nav__link">Home</a></li>
+                    <li class="nav__item"><a href="index.html#about" class="nav__link">About Me</a></li>
+                    <li class="nav__item"><a href="index.html#projects" class="nav__link">Projects</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <section class="project-page description" id="wmchecker-description">
+            <h1 class="section__title section__title--projects">Washing Machine Checker App</h1>
+            <p class="desc_body">
+                The Washing Machine Checker App is a project that I and a couple of my friends did over the course of a 24 hour sprint for a hardware hackathon at UCSD called IEEE Hard Hack that took place in Spring 2023. I had brought some parts to the hackathon including my Raspberry Pi, my friend had brought a camera sensor that he owned and we had access to ultrasonic sensors as part of the hackathon materials. We wanted to come up with a project that would act as a solution to a genuine problem that we faced at UCSD, and it needed to fit into the theme of the hackaton, which was "sensing the world". 
+            </p>
+
+            <p class="desc_body">
+                We did some brainstorming, thinking about what most inconvenienced us as students, and ultimately decided to do a project to address the annoying wait times and unpredictable availability for campus washing machines. We decided to acheive this by building a hardware system to sense when washing machines are in use and when they are free and then update this information on a web app (a system like this unbelievably does not already exist).  For our underlying hardware, we planned to use the ultrasonic sensors in combination with the camera to detect when the machines were started, in use, finished washing, and unloaded of clothes (important that this was a different state than the machine merely being finished).
+            </p>
+
+            <p class="desc_body">
+                The early stage of our project mainly involved planning out how we wanted to structure the different components, setting up and updating the Pi so we could ssh into it, and getting the sensors from the materials room. The ultrasonic sensor code was implemented first since that was the easiest part of the project and then we started on the computer vision aspect, which was extremely tricky. None of us had used OpenCV before, or even tested the camera out, so we essentially dove into this part blindfolded.  
+            </p>
+
+            <p class="desc_body">
+                We experimented a lot, pouring in several hours of our project time in trying out different ways to read the digits from the LCD screen displays of campus washing machines and dryers. We took multiple sample pictures of the displays, trying to use image processing functions of OpenCV in combination with a library called pytesseract. It was a massive struggle, but eventually we were able to get pytesseract to recognize text from a couple of our images that were centered correctly. The problem is that the digits on the LCD display were segmented rather than smooth, which made it hard for pytesseract's OCR functionality to determine that they were actually numbers and not something else. We had to perform several transformations on the images to get them into a form that we could use, including conversion to grayscale, blurring, finding contours, and warping the image to get a final result seen in the image below: a clean and thickened set of black digits on a white background, which we could then feed into pytesseract. Most of our computer vision code was written through finding examples on the internet, manipulating values and testing how it affected our image. We were not able to develop a perfect program in time and our file was still in very much a test phase by the deadline (seen in how the file is named blah.py), mainly due to the time-pressure of the competition and our limited experience. However, we certainly learned some interesting concepts about OpenCV and that computer vision is actually pretty challenging and should not be underestimated. For that reason, I am taking a computer vision class Fall 2023 to properly learn computer vision concepts that I can apply to other projects in the future.
+            </p>
+
+            <br></br>
+
+            <div class="img__body">
+                <div class="img__section">
+                   <img src="img\WM_Checker\wm_checker_threading.png" class="prj_image">
+                   <p>A snippet of our code.</p>
+                </div>
+                <div class="img__section">
+                    <img src="img\WM_Checker\wm_checker_webpage.png" class="prj_image">
+                    <p>A view of our web app.</p>
+                </div>
+                <div class="img__section">
+                    <img src="img\WM_Checker\wmchecker.png" class="prj_image">
+                    <p>Our code successfully performing text recognition.</p>
+                </div>
+            </div>
+
+            <p class="desc_body">
+                In addition to the computer vision code and ultrasonic sensor code, I also worked on the code for the backend portion of the application, which used threading to read the distance and duration of obstruction from the ultrasonic sensor in addition to the lcd screen reading, both of which would inform if the machine was started (display would change from price to time remaining), in use (display shows time remaining), finished or unloaded. For the finished versus unloaded state, the ultrasonic sensors came in most use because sometimes people would confuse a washing machine with someone else's clothes as theirs and open the door, only to realize their mistake and not unload the clothes. This would reset the washing machine display back to the price but the washing machine would still not be "available". To deal with this condition, the ultrasonic sensor would detect the duration that they were in front of the door for after opening the door to determine if they actually unloaded the clothes or not.
+            </p>
+
+            <p class="desc_body">
+                Overall, I had fun working on this project with my friends and enjoyed the thrill of my first 24 hour coding sprint, pulling a full all-nighter to get as much done as I could. These types of rapid-paced projects are challenging, but that's part of the experience. With all the experience that I have gained since then, I can't wait for Hard Hack 2024!
+            </p>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <a href="mailto:p3mehta@ucsd.edu" class="footer__link">Email: p3mehta@ucsd.edu</a>
+            <ul class="social-list">
+                <li class="social-list__item"><a class="social-list__link" href="https://www.instagram.com/pranav.mehta_9/"><i class="fa-brands fa-instagram"></i></a></li>
+                <li class="social-list__item"><a class="social-list__link" href="https://www.linkedin.com/in/pranav-mehta-4b23931b5/"><i class="fa-brands fa-linkedin"></i></a></li>
+                <li class="social-list__item"><a class="social-list__link" href="https://github.com/DaPhysikist"><i class="fa-brands fa-github"></i></a></li>
+                <li class="social-list__item"><a class="social-list__link" href="Pranav_Mehta_Resume_23-24.pdf"><i class="fa-solid fa-file"></i></a></li>
+            </ul>
+        </footer>
+
+        <script src="js/index.js"></script>
+    </body>
+</html>

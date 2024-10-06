@@ -176,6 +176,13 @@ body.dark-mode .nav-link:hover {
     transition: background-color 0.3s ease;
 }
 
+
+.name_title {
+    font-size: var(--fs-h1);
+    text-align: center; /* Center the text */
+    margin: 0 auto; /* Optional: Center the element if it has a width */
+}
+
 /* Main Pages */
 .main-page {
     padding: 1rem;
@@ -185,11 +192,6 @@ body.dark-mode .nav-link:hover {
 
 .about-me {
     text-align: center; /* Center-align heading and content */
-}
-
-.section__title {
-    font-size: var(--fs-h1);
-    margin-bottom: 1.5rem; /* Space between title and paragraph */
 }
 
 .about-me__body {
@@ -202,6 +204,138 @@ body.dark-mode .nav-link:hover {
     font-size: var(--fs-body);
 }
 
+/* Project Grid */
+.toggle-section {
+    max-width: 800px; /* Set a maximum width for the sections */
+    margin: 0 auto;   /* Center the sections horizontally */
+    padding: 20px;    /* Add some padding */
+    background: #f9f9f9; /* Optional: Background color for visibility */
+    border-radius: 8px; /* Optional: Rounded corners */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Optional: Shadow for depth */
+}
+
+.toggle-header {
+    cursor: pointer; /* Change cursor to pointer on hover */
+    font-size: 1.5em; /* Increased font size for header */
+    margin: 10px 0; /* Margin around header */
+}
+
+.toggle-content {
+    margin-top: 10px; /* Space between header and content */
+    display: none; /* Hide toggle content by default */
+}
+
+/* Toggle Section */
+.toggle-section {
+    max-width: 800px; /* Maximum width for sections */
+    margin: 20px auto; /* Center with margin */
+    padding: 20px; /* Padding around content */
+    background: #f9f9f9; /* Light background for light mode */
+    border-radius: 8px; /* Rounded corners */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); /* Optional shadow */
+}
+
+/* Dark Mode for Toggle Section */
+body.dark-mode .toggle-section {
+    background: #2c2c2c; /* Dark mode background */
+}
+
+/* Toggle Header */
+.toggle-header {
+    cursor: pointer; /* Pointer cursor on hover */
+    font-size: 1.5em; /* Increased font size */
+    margin: 10px 0; /* Margin around header */
+}
+
+/* Toggle Content */
+.toggle-content {
+    margin-top: 10px; /* Space between header and content */
+    display: none; /* Hide by default */
+}
+
+/* Show content when active */
+.toggle-content.active {
+    display: block; /* Show when active */
+}
+
+.toggle-header {
+    background-color: var(--theme-bg-color); /* Background color for toggle header */
+    cursor: pointer; /* Change cursor to pointer on hover */
+    padding: 1rem;
+    border: 1px solid #ccc; /* Border for better visibility */
+    border-radius: 5px; /* Rounded corners */
+    transition: background-color 0.3s ease; /* Smooth background transition */
+}
+
+.toggle-header:hover {
+    background-color: var(--theme-hover-bg-color); /* Change color on hover */
+}
+
+.toggle-content.hidden {
+    display: none; /* Maintain hidden state */
+}
+
+.toggle-content:not(.hidden) {
+    display: block; /* Show content when toggled */
+}
+
+.project-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr); /* Two columns */
+    gap: 20px; /* Space between grid items */
+    padding: 20px; /* Padding around the grid */
+}
+
+/* Project Cards */
+.project-card {
+    background-color: #fff; /* Light mode card background */
+    padding: 15px; /* Padding inside cards */
+    border-radius: 8px; /* Rounded corners */
+    margin-bottom: 20px; /* Space between cards */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); /* Optional shadow */
+}
+
+/* Dark Mode for Project Cards */
+body.dark-mode .project-card {
+    background-color: #1e1e1e; /* Dark mode card background */
+    color: #f1f1f1; /* Dark mode text color in cards */
+}
+
+.project-card:hover {
+    transform: scale(1.05); /* Scale up on hover */
+}
+
+.project-image {
+    width: 100%;
+    height: auto; /* Responsive image */
+    border-radius: 10px; /* Rounded corners for image */
+}
+
+.project-title {
+    font-size: 1.5rem; /* Title font size */
+    margin: 10px 0; /* Margin around title */
+}
+
+.project-text {
+    font-size: 1rem; /* Summary font size */
+    margin: 10px 0; /* Margin around text */
+}
+
+.project-link {
+    display: inline-block;
+    text-decoration: none;
+    color: inherit;
+    font-size: 1.5rem;
+    margin-right: 10px; /* Add spacing between icons */
+}
+
+.project-link:last-child {
+    margin-right: 0; /* Remove margin from the last icon */
+}
+
+.hidden {
+    display: none; /* Hide elements with this class */
+}
 
 /* Footer */
 .footer {

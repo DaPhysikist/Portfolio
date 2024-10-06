@@ -34,5 +34,12 @@ themeToggle.addEventListener('click', () => {
     }
 });
 
+document.querySelectorAll('.toggle-header').forEach(header => {
+    header.addEventListener('click', () => {
+        const content = header.nextElementSibling;
+        content.classList.toggle('hidden');
+    });
+});
+
 // Apply the stored theme on page load
 window.addEventListener('DOMContentLoaded', applyStoredTheme);
