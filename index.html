@@ -96,6 +96,19 @@
             color: var(--primary-color);
         }
 
+        /* CSS for the image in the About section */
+        #about-content img {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            object-fit: cover;
+            float: left;
+            margin-right: 1.5rem;
+            margin-bottom: 1.5rem;
+            shape-outside: circle();
+            box-shadow: var(--shadow-light);
+        }
+
         /* Social List */
         .social-list {
             display: flex;
@@ -186,6 +199,9 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             display: flex;
             flex-direction: column;
+            aspect-ratio: 16 / 9;
+            height: auto;
+            position: relative;
         }
 
         .project-card:hover {
@@ -195,33 +211,111 @@
 
         .project-image {
             width: 100%;
-            height: 200px;
+            height: 100%;
             object-fit: cover;
+            transition: filter 0.3s ease;
         }
 
-        .project-card h3, .project-card p {
-            padding: 0 1.25rem;
+        .project-card:hover .project-image {
+            filter: brightness(50%);
         }
 
-        .project-card h3 {
-            margin-top: 1rem;
+        .project-card:hover .project-banner {
+            transform: translateY(0);
+        }
+
+        .project-banner {
+            /* Keep existing styles */
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 0.4rem 0.8rem;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            /* Changed from row to column to stack elements */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            font-size: 0.9rem;
+        }
+
+        .project-banner h3 {
+            margin: 0;
+            color: white;
+            font-size: 1rem;
+            z-index: 10;
         }
 
         .project-links {
-            padding: 0 1.25rem 1.25rem;
+            padding: 0;
             display: flex;
             gap: 1rem;
-            margin-top: auto; /* Pushes links to the bottom */
+            margin-top: 0.5rem; /* Added margin to create space between "Read More" and icons */
         }
 
         .project-links a {
-            color: var(--text-color);
-            font-size: 1.5rem;
+            color: white;
+            font-size: 1.3rem;
             transition: color 0.3s;
         }
 
         .project-links a:hover {
             color: var(--primary-color);
+        }
+
+        .project-text, .project-subtitle {
+            display: none;
+        }
+
+        .read-more {
+            cursor: pointer;
+            color: var(--primary-color);
+            text-decoration: underline;
+            /* Added margin to separate it from the title */
+            margin-top: 0.2rem;
+        }
+
+        /* Modal for 'Read More' */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background-color: var(--card-bg);
+            margin: 15% auto;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: var(--shadow-light);
+            width: 80%;
+            max-width: 600px;
+        }
+
+        .close-button {
+            color: var(--text-color);
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+
+        .close-button:hover,
+        .close-button:focus {
+            color: #000;
+            text-decoration: none;
+            cursor: pointer;
         }
 
         /* Footer */
@@ -259,75 +353,112 @@
         <section class="collapsible-section">
             <h2 class="section-header" role="button" aria-expanded="true" aria-controls="about-content">About</h2>
             <div id="about-content" class="section-content">
+                <img src="img/pranav_mehta.jpg" alt="Pranav Mehta">
                 <p>Hello! I’m Pranav, an aspiring embedded engineer who grew up fascinated with construction sites, airplanes, computers, and the entire idea of inventing. From a young age, I have wanted to acquire knowledge and apply that knowledge to make this planet a cleaner, greener, and happier place.</p>
                 <p>I am committed to finding and implementing innovative ways to combat pollution and waste through the use of science and technology. I believe that through effective research and sustainable practices, there are real possibilities to discover. I am eager to explore research or industry opportunities where I can apply my knowledge of science, computer science, electrical engineering, robotics, networking, and cloud technologies.</p>
             </div>
         </section>
-
         <section class="collapsible-section">
             <h2 class="section-header" role="button" aria-expanded="true" aria-controls="projects-content">Projects</h2>
             <div id="projects-content" class="section-content">
                 <div class="project-grid">
                     <div class="project-card">
-                        <img src="img/lora_mesh.jpg" alt="Configurable LoRa Mesh" class="project-image">
-                        <h3 class="project-title">Configurable LoRa Mesh</h3>
-                        <p class="project-text">Using the open-source Radiohead library, I built a configurable LoRa mesh network for research & industry use cases using low-cost Adafruit Feather boards.</p>
-                        <div class="project-links">
-                            <a href="https://github.com/DaPhysikist/lora_mesh" target="_blank" aria-label="GitHub repository"><i class="fa-brands fa-github"></i></a>
+                        <img src="img/shuteye.png" alt="ShutEye" class="project-image">
+                        <div class="project-banner">
+                            <h3 class="project-title">ShutEye</h3>
+                            <p class="read-more">Read More</p>
+                            <div class="project-links">
+                                <a href="https://github.com/DaPhysikist/CSE147_Final_Project" target="_blank" aria-label="GitHub repository"><i class="fa-brands fa-github"></i></a>
+                            </div>
                         </div>
+                        <p class="project-text">Your full project description here.</p>
                     </div>
+
+                    <div class="project-card">
+                        <img src="img/feather.jpg" alt="Configurable LoRa Mesh" class="project-image">
+                        <div class="project-banner">
+                            <h3 class="project-title">Configurable LoRa Mesh</h3>
+                            <p class="read-more">Read More</p>
+                            <div class="project-links">
+                                <a href="https://github.com/DaPhysikist/lora_mesh" target="_blank" aria-label="GitHub repository"><i class="fa-brands fa-github"></i></a>
+                            </div>
+                        </div>
+                        <p class="project-text">Using the open-source Radiohead library, I built a configurable LoRa mesh network for research & industry use cases using low-cost Adafruit Feather boards.</p>
+                    </div>
+
                     <div class="project-card">
                         <img src="img/robocup.png" alt="Triton Robocup" class="project-image">
-                        <h3 class="project-title">Triton Robocup</h3>
-                        <p class="project-text"></p>
-                        <div class="project-links">
-                            <a href="https://github.com/IEEE-TritonsRCSC/robocup-embedded" target="_blank" aria-label="GitHub repository"><i class="fa-brands fa-github"></i></a>
-                            <a href="https://ssl.robocup.org/wp-content/uploads/2024/04/2024_TDP_Tritons.pdf" target="_blank" aria-label="TDP paper"><i class="fa-solid fa-file"></i></a>
+                        <div class="project-banner">
+                            <h3 class="project-title">Triton Robocup</h3>
+                            <p class="read-more">Read More</p>
+                            <div class="project-links">
+                                <a href="https://github.com/IEEE-TritonsRCSC/robocup-embedded" target="_blank" aria-label="GitHub repository"><i class="fa-brands fa-github"></i></a>
+                                <a href="https://ssl.robocup.org/wp-content/uploads/2024/04/2024_TDP_Tritons.pdf" target="_blank" aria-label="TDP paper"><i class="fa-solid fa-file"></i></a>
+                            </div>
                         </div>
+                        <p class="project-text">Your full project description here.</p>
                     </div>
+
                     <div class="project-card">
                         <img src="img/stmboard.jpg" alt="You Lost It Project" class="project-image">
-                        <h3 class="project-title">You Lost It Project</h3>
-                        <p class="project-text">Developed a real-time, power-efficient Bluetooth tracker device using an STM32 that sends BLE packets to nearby phones. Designed bare-metal drivers in C for the GPIO and Timer peripherals, communicating with the accelerometer sensor using I2C, and communicating with the Bluetooth Low Energy chip using SPI.</p>
-                        <div class="project-links">
-                            <a href="https://github.com/DaPhysikist/you-lost-it" target="_blank" aria-label="GitHub repository"><i class="fa-brands fa-github"></i></a>
+                        <div class="project-banner">
+                            <h3 class="project-title">You Lost It Project</h3>
+                            <p class="read-more">Read More</p>
+                            <div class="project-links">
+                                <a href="https://github.com/DaPhysikist/you-lost-it" target="_blank" aria-label="GitHub repository"><i class="fa-brands fa-github"></i></a>
+                            </div>
                         </div>
+                        <p class="project-text">Developed a real-time, power-efficient Bluetooth tracker device using an STM32 that sends BLE packets to nearby phones. Designed bare-metal drivers in C for the GPIO and Timer peripherals, communicating with the accelerometer sensor using I2C, and communicating with the Bluetooth Low Energy chip using SPI.</p>
                     </div>
+
                     <div class="project-card">
                         <img src="img/botion_cube_cover.png" alt="Botion Cube" class="project-image">
-                        <h3 class="project-title">Botion Cube</h3>
-                        <p class="project-text">I developed the speech-to-text subsystem of the Botion cube, which samples audio data using the microphone sensor over I2S, records the sound file, then passes it to a speech-to-text ML API to get back text. This subsystem allows users to create tasks on the cube using their voice. The video file (play button) below demonstrates this system.</p>
-                        <div class="project-links">
-                            <a href="https://github.com/DaPhysikist/botion-cube" target="_blank" aria-label="GitHub repository"><i class="fa-brands fa-github"></i></a>
-                            <a href="img/Botion Cube/botion_cube.mov" target="_blank" aria-label="Project demo video"><i class="fa-solid fa-circle-play"></i></a>
-                            <a href="https://abenstirling.com/posts/botion_cube/" target="_blank" aria-label="Project blog post"><i class="fa-solid fa-file"></i></a>
+                        <div class="project-banner">
+                            <h3 class="project-title">Botion Cube</h3>
+                            <p class="read-more">Read More</p>
+                            <div class="project-links">
+                                <a href="https://github.com/DaPhysikist/botion-cube" target="_blank" aria-label="GitHub repository"><i class="fa-brands fa-github"></i></a>
+                                <a href="img/Botion Cube/botion_cube.mov" target="_blank" aria-label="Project demo video"><i class="fa-solid fa-circle-play"></i></a>
+                                <a href="https://abenstirling.com/posts/botion_cube/" target="_blank" aria-label="Project blog post"><i class="fa-solid fa-file"></i></a>
+                            </div>
                         </div>
+                        <p class="project-text">I developed the speech-to-text subsystem of the Botion cube, which samples audio data using the microphone sensor over I2S, records the sound file, then passes it to a speech-to-text ML API to get back text. This subsystem allows users to create tasks on the cube using their voice. The video file (play button) below demonstrates this system.</p>
                     </div>
                     <div class="project-card">
                         <img src="img/yonder_deep.jpg" alt="Nautilus AUV" class="project-image">
-                        <h3 class="project-title">Nautilus AUV</h3>
-                        <p class="project-text"></p>
-                        <div class="project-links">
-                            <a href="https://github.com/Yonder-Deep/Nautilus" target="_blank" aria-label="GitHub repository"><i class="fa-brands fa-github"></i></a>
+                        <div class="project-banner">
+                            <h3 class="project-title">Nautilus AUV</h3>
+                            <p class="read-more">Read More</p>
+                            <div class="project-links">
+                                <a href="https://github.com/Yonder-Deep/Nautilus" target="_blank" aria-label="GitHub repository"><i class="fa-brands fa-github"></i></a>
+                            </div>
                         </div>
+                        <p class="project-text">Your full project description here.</p>
                     </div>
+
                     <div class="project-card">
                         <img src="img/Leashable Boats/moddemo.png" alt="Leashable Boats Mod" class="project-image">
-                        <h3 class="project-title">Leashable Boats Mod</h3>
-                        <h4 class="project-subtitle">6,000+ downloads</h4>
-                        <p class="project-text">Leashable Boats is a Minecraft mod that I developed during summer 2022, eager to test out the new concepts that I had learned from AP Computer Science A in high school. It turned out to be a fun project for me to make as I was able to successfully integrate specific features that I had wanted into the game, and I was also able to share my work with the community, with approximately 6,000 downloads for my mod now.</p>
-                        <div class="project-links">
-                            <a href="https://github.com/DaPhysikist/Leashable-Boats" target="_blank" aria-label="GitHub repository"><i class="fa-brands fa-github"></i></a>
-                            <a href="https://www.curseforge.com/minecraft/mc-mods/leashable-boats" target="_blank" aria-label="CurseForge page"><i class="fa-solid fa-cloud-arrow-down"></i></a>
+                        <div class="project-banner">
+                            <h3 class="project-title">Leashable Boats Mod</h3>
+                            <p class="read-more">Read More</p>
+                            <div class="project-links">
+                                <a href="https://github.com/DaPhysikist/Leashable-Boats" target="_blank" aria-label="GitHub repository"><i class="fa-brands fa-github"></i></a>
+                                <a href="https://www.curseforge.com/minecraft/mc-mods/leashable-boats" target="_blank" aria-label="CurseForge page"><i class="fa-solid fa-cloud-arrow-down"></i></a>
+                            </div>
                         </div>
+                        <p class="project-text">Leashable Boats is a Minecraft mod that I developed during summer 2022, eager to test out the new concepts that I had learned from AP Computer Science A in high school. It turned out to be a fun project for me to make as I was able to successfully integrate specific features that I had wanted into the game, and I was also able to share my work with the community, with approximately 6,000 downloads for my mod now.</p>
                     </div>
+
                     <div class="project-card">
                         <img src="img/Power-Ahn/power_ahn.png" alt="Power Ahn Project" class="project-image">
-                        <h3 class="project-title">Power Ahn Project</h3>
-                        <p class="project-text">I built a productivity tool that helps its users keep track of the tasks that they needed to do next, but goes a step further by opening the application that they need to perform their task. This is especially handy if the user prefers to keep their desktop clean and does not have many shortcuts, as it saves them the time of searching for the app on their computer and then opening it. Insert a task name, start time, end time, and system application name. When the start time arrives, the application will automatically open the provided system application (such as Visual Studio Code or Word) and set a timer to start counting down on the UI until the end time.</p>
-                        <div class="project-links">
-                            <a href="https://github.com/DaPhysikist/Power-Ahn" target="_blank" aria-label="GitHub repository"><i class="fa-brands fa-github"></i></a>
+                        <div class="project-banner">
+                            <h3 class="project-title">Power Ahn Project</h3>
+                            <p class="read-more">Read More</p>
+                            <div class="project-links">
+                                <a href="https://github.com/DaPhysikist/Power-Ahn" target="_blank" aria-label="GitHub repository"><i class="fa-brands fa-github"></i></a>
+                            </div>
                         </div>
+                        <p class="project-text">I built a productivity tool that helps its users keep track of the tasks that they needed to do next, but goes a step further by opening the application that they need to perform their task. This is especially handy if the user prefers to keep their desktop clean and does not have many shortcuts, as it saves them the time of searching for the app on their computer and then opening it. Insert a task name, start time, end time, and system application name. When the start time arrives, the application will automatically open the provided system application (such as Visual Studio Code or Word) and set a timer to start counting down on the UI until the end time.</p>
                     </div>
                 </div>
             </div>
@@ -343,6 +474,14 @@
         </ul>
         <p>&copy; 2025 Pranav Mehta</p>
     </footer>
+
+    <div id="project-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h3 id="modal-title"></h3>
+            <p id="modal-text"></p>
+        </div>
+    </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -379,6 +518,36 @@
                     header.setAttribute('aria-expanded', !isExpanded);
                 });
             });
+
+            // "Read More" Modal Functionality
+            const readMoreLinks = document.querySelectorAll('.read-more');
+            const modal = document.getElementById('project-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalText = document.getElementById('modal-text');
+            const closeButton = document.querySelector('.close-button');
+
+            readMoreLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    const card = link.closest('.project-card');
+                    const title = card.querySelector('.project-title').textContent;
+                    const text = card.querySelector('.project-text').textContent;
+
+                    modalTitle.textContent = title;
+                    modalText.textContent = text;
+                    modal.style.display = 'block';
+                });
+            });
+
+            closeButton.addEventListener('click', () => {
+                modal.style.display = 'none';
+            });
+
+            window.addEventListener('click', (event) => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+
         });
     </script>
 </body>
