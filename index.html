@@ -224,9 +224,57 @@
             transform: translateY(0);
         }
 
+        .shuteye-card {
+            /* Set the initial image as the background of the card */
+            background-image: url('img/shtueye_architecture.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            position: relative;
+            /* This ensures the banner is on top of the animation */
+            z-index: 1;
+        }
+
+        /* This keyframe animation creates the fading effect */
+        @keyframes image-fade-shuteye {
+            0%, 45% {
+                opacity: 1; /* First image is fully visible */
+            }
+            55%, 95% {
+                opacity: 0; /* Second image is fully visible (first is transparent) */
+            }
+            100% {
+                opacity: 1; /* Loop back to the first image */
+            }
+        }
+
+        .shuteye-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            /* Set the second image for the pseudo-element */
+            background-image: url('img/shuteye.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            z-index: 2; /* Layer on top of the first image */
+            
+            /* Apply the animation to the pseudo-element */
+            animation: image-fade-shuteye 10s infinite linear;
+        }
+
+        /* Override the default project-image hover effect for this card */
+        .shuteye-card:hover .project-image {
+            filter: none;
+        }
+
         .project-banner {
             /* Keep existing styles */
             position: absolute;
+            z-index: 3;
             bottom: 0;
             left: 0;
             width: 100%;
@@ -362,8 +410,7 @@
             <h2 class="section-header" role="button" aria-expanded="true" aria-controls="projects-content">Projects</h2>
             <div id="projects-content" class="section-content">
                 <div class="project-grid">
-                    <div class="project-card">
-                        <img src="img/shuteye.png" alt="ShutEye" class="project-image">
+                    <div class="project-card shuteye-card">
                         <div class="project-banner">
                             <h3 class="project-title">ShutEye</h3>
                             <p class="read-more">Read More</p>
