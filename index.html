@@ -216,6 +216,10 @@
             transition: filter 0.3s ease;
         }
 
+        .quadcopter-card .project-image {
+            object-fit: contain;
+        }
+
         .project-card:hover .project-image {
             filter: brightness(50%);
         }
@@ -381,6 +385,7 @@
             <img src="/android-chrome-512x512.png" alt="Pranav Mehta Logo" class="header-icon">
         </a>
         <nav class="main-nav">
+            <a href="materials.html" class="nav-link">Materials</a>
             <a href="blog.html" class="nav-link">Blog</a>
             <button id="theme-toggle" aria-label="Toggle dark mode">
                 <i class="fas fa-sun" id="sun-icon"></i>
@@ -420,6 +425,24 @@
                             </div>
                         </div>
                         <p class="project-text">Built an energy-saving smart home system consisting of an iOS app built in Swift, a Python-based web/data server, and Tapo smart plugs connected over WiFi to a custom IoT device. The custom IoT device leverages ultrasonic sensors, BLE beacons emitted by the user's phone, and Ultra-Wideband signals emitted by the user's phone to determine whether the user is present in the vicinty of the smart plug. When the user is close by, the plug is switched on, and when the user is not, the plug is switched off to save power. The IoT device also comes with a flame sensor as a safety mechanism to shut off the plug if a fire is detected. The iOS app is used for pairing to the IoT device and can also query data from the data server. The data server collects energy usage data from the IoT device, and exposes the data through a REST API for the iOS app and webapp to access for display. Full system design report and GitHub are linked below.</p>
+                    </div>
+
+                    <div class="project-card">
+                        <img src="img/Artemis.png" alt="Project Artemis" class="project-image">
+                        <div class="project-banner">
+                            <h3 class="project-title">Project Artemis</h3>
+                            <p class="read-more">Read More</p>
+                        </div>
+                        <p class="project-text">Coming soon!</p>
+                    </div>
+
+                    <div class="project-card quadcopter-card">
+                        <img src="img/quadcopter.gif" alt="Quadcopter" class="project-image">
+                        <div class="project-banner">
+                            <h3 class="project-title">Quadcopter</h3>
+                            <p class="read-more">Read More</p>
+                        </div>
+                        <p class="project-text">Coming soon!</p>
                     </div>
 
                     <div class="project-card">

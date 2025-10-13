@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pranav Mehta - Materials</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    
+    <style>
+       :root {
+            --bg-color: #f0f2f5;
+            --text-color: #333;
+            --card-bg: #fff;
+            --border-color: #ddd;
+            --primary-color: #007bff;
+            --link-hover: #0056b3;
+            --shadow-light: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .dark-mode {
+            --bg-color: #1a1a1a;
+            --text-color: #f4f4f4;
+            --card-bg: #2b2b2b;
+            --border-color: #444;
+            --primary-color: #1e90ff;
+            --link-hover: #4dabff;
+            --shadow-light: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            margin: 0;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        /* Header & Nav */
+        .main-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background-color: var(--card-bg);
+            box-shadow: var(--shadow-light);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .main-nav {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: var(--text-color);
+            font-weight: 700;
+            transition: color 0.3s;
+        }
+
+        .nav-link:hover {
+            color: var(--primary-color);
+        }
+
+        #theme-toggle {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.25rem;
+            color: var(--text-color);
+        }
+
+        #theme-toggle:hover {
+            color: var(--primary-color);
+        }
+
+        /* Social List */
+        .social-list {
+            display: flex;
+            justify-content: center;
+            list-style: none;
+            padding: 0;
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .social-list li {
+            margin: 0; /* Remove default list item margin */
+        }
+
+        .social-list i {
+            font-size: 1.75rem;
+            color: var(--text-color);
+            transition: color 0.3s;
+        }
+
+        .social-list a:hover i {
+            color: var(--primary-color);
+        }
+
+        /* Material Page Specific Styles */
+        .page-title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-top: 0;
+            margin-bottom: 2rem;
+        }
+        
+        .materials-grid {
+            display: grid;
+            gap: 2rem;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        }
+
+        .material-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: var(--shadow-light);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .material-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        .material-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+        
+        .material-content {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+        
+        .material-title {
+            margin: 0 0 0.5rem;
+            font-size: 1.5rem;
+            color: var(--text-color);
+        }
+        
+        .material-description {
+            margin: 0 0 1rem;
+            color: #666;
+            flex-grow: 1;
+        }
+        
+        .dark-mode .material-description {
+            color: #ccc;
+        }
+        
+        .material-links {
+            display: flex;
+            gap: 1rem;
+            margin-top: auto; /* Pushes the links to the bottom of the card */
+        }
+        
+        .material-links a {
+            text-decoration: none;
+            color: var(--primary-color);
+            font-size: 1.5rem;
+            transition: color 0.3s;
+        }
+
+        .material-links a:hover {
+            color: var(--link-hover);
+        }
+
+        .coming-soon {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        /* Footer */
+        .main-footer {
+            text-align: center;
+            padding: 2rem 1rem;
+            border-top: 1px solid var(--border-color);
+            margin-top: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <header class="main-header">
+        <a href="/" class="header-icon-link">
+            <img src="/android-chrome-512x512.png" alt="Pranav Mehta Logo" class="header-icon">
+        </a>
+        <nav class="main-nav">
+            <a href="materials.html" class="nav-link">Materials</a>
+            <a href="blog.html" class="nav-link">Blog</a>
+            <button id="theme-toggle" aria-label="Toggle dark mode">
+                <i class="fas fa-sun" id="sun-icon"></i>
+                <i class="fas fa-moon" id="moon-icon" style="display:none;"></i>
+            </button>
+        </nav>
+    </header>
+
+    <main class="container">
+        <h1 class="page-title">Materials</h1>
+        <p class="subtitle">Tutorials, slides, and learning resources.</p>
+        
+        <section class="materials-grid">
+            <div class="material-card">
+                <img src="img/music_streaming_device.jpg" alt="Music Streaming Device" class="material-image">
+                <div class="material-content">
+                    <h3 class="material-title">ESP32-based Music Streaming Device</h3>
+                    <p class="material-description">A workshop for making a Bluetooth music streaming device using an ESP32!</p>
+                    <div class="material-links">
+                        <a href="ESP32_Music_Streaming_Device_Workshop.pptx" target="_blank" aria-label="View Slides"><i class="fa-solid fa-file-powerpoint"></i></a>
+                        <a href="https://www.youtube.com/watch?v=pzgI_zOHpoA" target="_blank" aria-label="Watch Video"><i class="fa-brands fa-youtube"></i></a>
+                        <a href="https://github.com/DaPhysikist/music_streaming_device_code" target="_blank" aria-label="GitHub Repo"><i class="fa-brands fa-github"></i></a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="material-card">
+                <img src="img/pcb.jpg" alt="PCB" class="material-image">
+                <div class="material-content">
+                    <h3 class="material-title">PCB Design Workshop</h3>
+                    <p class="material-description">A workshop for learning the basics of PCB design.</p>
+                    <div class="material-links">
+                        <a href="PCB_Design_Workshop.pptx" target="_blank" aria-label="View Slides"><i class="fa-solid fa-file-powerpoint"></i></a>
+                        <a href="https://www.youtube.com/watch?v=BaP7xcSHFdI" target="_blank" aria-label="Watch Video"><i class="fa-brands fa-youtube"></i></a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="material-card">
+                <img src="img/rustacean.png" alt="Rust" class="material-image">
+                <div class="material-content">
+                    <h3 class="material-title">Rust Programming Workshop</h3>
+                    <p class="material-description">A workshop for learning the basics of Rust programming.</p>
+                    <div class="material-links">
+                        <a href="Rust_Programming_Workshop.pptx" target="_blank" aria-label="View Slides"><i class="fa-solid fa-file-powerpoint"></i></a>
+                        <a href="https://www.youtube.com/watch?v=fH_-2J-SSIo" target="_blank" aria-label="Watch Video"><i class="fa-brands fa-youtube"></i></a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="material-card coming-soon">
+                <div class="material-content">
+                    <h3 class="material-title">More Materials Coming Soon!</h3>
+                    <p class="material-description">Check back later for new tutorials and learning resources.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="main-footer">
+        <ul class="social-list">
+            <li><a href="mailto:p3mehta@ucsd.edu" target="_blank" aria-label="Email"><i class="fa-solid fa-envelope"></i></a></li>
+            <li><a href="https://www.linkedin.com/in/pranav-mehta-4b23931b5/" target="_blank" aria-label="LinkedIn"><i class="fa-brands fa-linkedin"></i></a></li>
+            <li><a href="https://github.com/DaPhysikist" target="_blank" aria-label="GitHub"><i class="fa-brands fa-github"></i></a></li>
+            <li><a href="Pranav_Mehta_Resume_24-25.pdf" target="_blank" aria-label="Resume"><i class="fa-solid fa-file-lines"></i></a></li>
+        </ul>
+        <p>&copy; 2025 Pranav Mehta</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Theme Toggle
+            const themeToggle = document.getElementById('theme-toggle');
+            const sunIcon = document.getElementById('sun-icon');
+            const moonIcon = document.getElementById('moon-icon');
+            const body = document.body;
+
+            const currentTheme = localStorage.getItem('theme') || 'light';
+            if (currentTheme === 'dark') {
+                body.classList.add('dark-mode');
+                sunIcon.style.display = 'none';
+                moonIcon.style.display = 'inline-block';
+            } else {
+                body.classList.remove('dark-mode');
+                sunIcon.style.display = 'inline-block';
+                moonIcon.style.display = 'none';
+            }
+
+            themeToggle.addEventListener('click', () => {
+                body.classList.toggle('dark-mode');
+                const isDarkMode = body.classList.contains('dark-mode');
+                localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+                sunIcon.style.display = isDarkMode ? 'none' : 'inline-block';
+                moonIcon.style.display = isDarkMode ? 'inline-block' : 'none';
+            });
+        });
+    </script>
+</body>
+</html>

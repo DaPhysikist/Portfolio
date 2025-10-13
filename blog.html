@@ -134,6 +134,58 @@
             margin-bottom: 2rem;
         }
 
+        /* Snippets section styles */
+        .snippets-section {
+            padding: 2rem 0;
+        }
+
+        .snippets-container {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        }
+
+        .snippet-card {
+            background-color: var(--card-bg);
+            padding: 1rem;
+            border-radius: 12px;
+            box-shadow: var(--shadow-light);
+            display: flex; 
+            flex-direction: column; 
+            justify-content: space-between; 
+        }
+        
+        .snippet-content {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.5rem; 
+        }
+
+        .snippet-emoji {
+            font-size: 2rem;
+        }
+
+        .snippet-text {
+            flex-grow: 1;
+            margin: 0;
+        }
+        
+        .snippet-date {
+            display: block;
+            font-size: 0.875rem;
+            color: #999;
+            text-align: right;
+            margin-top: 0.5rem;
+        }
+        
+        @media (max-width: 600px) {
+            .snippet-card {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
         .blog-posts-grid {
             display: grid;
             gap: 2rem;
@@ -207,6 +259,7 @@
             <img src="/android-chrome-512x512.png" alt="Pranav Mehta Logo" class="header-icon">
         </a>
         <nav class="main-nav">
+            <a href="materials.html" class="nav-link">Materials</a>
             <a href="blog.html" class="nav-link">Blog</a>
             <button id="theme-toggle" aria-label="Toggle dark mode">
                 <i class="fas fa-sun" id="sun-icon"></i>
@@ -217,15 +270,59 @@
 
     <main class="container">
         <h1 class="page-title">Blog</h1>
-        <p class="subtitle">A place for my thoughts and projects.</p>
-        
-        <section class="blog-posts-grid">
+        <p class="subtitle">A place for my thoughts, opinions, and interests.</p>
+
+        <section class="snippets-section">
+            <h2>Snippets</h2>
+            <p>Short musings, intrusive impressions, and quick updates.</p>
+            <div class="snippets-container" id="snippets-container">
+                <div class="snippet-card">
+                    <div class="snippet-content">
+                        <span class="snippet-emoji">🤔</span>
+                        <p class="snippet-text">Correct pronunciation is not shaped by linguistic rules, it’s dictated by societal conformity</p>
+                    </div>
+                    <span class="snippet-date">Oct 10, 2025</span>
+                </div>
+                <div class="snippet-card">
+                    <div class="snippet-content">
+                        <span class="snippet-emoji">🥐</span>
+                        <p class="snippet-text">My office should have a mobile app for the cafe</p>
+                    </div>
+                    <span class="snippet-date">Aug 16, 2025</span>
+                </div>
+                <div class="snippet-card">
+                    <div class="snippet-content">
+                        <span class="snippet-emoji">🚗</span>
+                        <p class="snippet-text">Road inequality</p>
+                    </div>
+                    <span class="snippet-date">June 27, 2025</span>
+                </div>
+                <div class="snippet-card">
+                    <div class="snippet-content">
+                        <span class="snippet-emoji">🤓</span>
+                        <p class="snippet-text">That moment when you actually make use of two-pointer algorithm for a useful scenario</p>
+                    </div>
+                    <span class="snippet-date">May 16, 2025</span>
+                </div>
+                <div class="snippet-card">
+                    <div class="snippet-content">
+                        <span class="snippet-emoji">👂</span>
+                        <p class="snippet-text">The door in Galbraith Hall 2nd floor quiet study room sounds like the Roblox oof sound</p>
+                    </div>
+                    <span class="snippet-date">May 1, 2025</span>
+                </div>
+            </div>
+        </section>
+
+        <hr>
+
+        <h2>Longer Posts</h2>
+        <section class="blog-posts-grid" id="blog-posts-grid">
             <div class="blog-post-card coming-soon">
                 <h3>Coming Soon!</h3>
                 <p>Check back later for new articles and insights.</p>
             </div>
-            
-            </section>
+        </section>
     </main>
 
     <footer class="main-footer">
