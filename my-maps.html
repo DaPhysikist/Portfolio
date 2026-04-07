@@ -339,6 +339,27 @@
                         refX="7" refY="3.5" orient="auto">
                     <polygon points="0 0, 8 3.5, 0 7" style="fill:#007bff"/>
                 </marker>
+                <!-- Open arrow markers -->
+                <marker id="open-arrow" markerWidth="8" markerHeight="7"
+                        refX="7" refY="3.5" orient="auto">
+                    <polyline id="oa-poly" points="0 0, 8 3.5, 0 7" style="fill:none;stroke-width:1"/>
+                </marker>
+                <marker id="open-arrow-sel" markerWidth="8" markerHeight="7"
+                        refX="7" refY="3.5" orient="auto">
+                    <polyline points="0 0, 8 3.5, 0 7" style="fill:none;stroke:#007bff;stroke-width:1"/>
+                </marker>
+                <!-- Diamond marker default -->
+                <marker id="diamond-default" markerWidth="8" markerHeight="8"
+                        refX="4" refY="4" orient="auto">
+                    <polygon id="dm-poly" points="4 0, 8 4, 4 8, 0 4"/>
+                </marker>
+                <!-- Circle marker default -->
+                <marker id="circle-default" markerWidth="8" markerHeight="8"
+                        refX="4" refY="4" orient="auto">
+                    <circle id="ci-circle" cx="4" cy="4" r="2.5"/>
+                </marker>
+                <!-- Dynamic color markers -->
+                <g id="color-markers"></g>
             </defs>
             <g id="edges-layer"></g>
         </svg>
@@ -394,6 +415,32 @@ const COLORS = {
     purple: { border: '#6f42c1', bg: '#f0ebff', dark_border: '#9b72e8', dark_bg: '#221840' },
     teal:   { border: '#20c997', bg: '#e0faf3', dark_border: '#20c997', dark_bg: '#102d25' },
     gray:   { border: '#6c757d', bg: '#f3f4f5', dark_border: '#9aa0a6', dark_bg: '#252525' },
+};
+
+// ─────────────────────────────────────────────
+//  EDGE COLORS AND STYLES (must match editor)
+// ─────────────────────────────────────────────
+const EDGE_COLORS = [
+    { name: 'Default', value: '' },
+    { name: 'Blue',    value: '#007bff' },
+    { name: 'Green',   value: '#28a745' },
+    { name: 'Red',     value: '#e74c3c' },
+    { name: 'Orange',  value: '#fd7e14' },
+    { name: 'Purple',  value: '#6f42c1' },
+    { name: 'Teal',    value: '#20c997' },
+    { name: 'Gray',    value: '#6c757d' },
+    { name: 'Black',   value: '#222222' },
+    { name: 'Pink',    value: '#e83e8c' },
+    { name: 'Yellow',  value: '#ffc107' },
+    { name: 'Cyan',    value: '#17a2b8' },
+];
+
+const DASH_MAP = {
+    solid:    'none',
+    dotted:   '2,4',
+    dashed:   '8,5',
+    longdash: '16,5',
+    dashdot:  '10,4,2,4',
 };
 
 // ─────────────────────────────────────────────
@@ -480,26 +527,106 @@ function renderNodes() {
     if (!map) return;
 
     Object.values(map.nodes).forEach(node => {
-        const c = COLORS[node.color || 'blue'];
-        const border = isDark ? c.dark_border : c.border;
-        const bg     = isDark ? c.dark_bg     : c.bg;
+        // Use custom border/fill colors if set, otherwise use defaults
+        let borderColor = node.borderColor || '';
+        let fillColor = node.fillColor || '';
+        
+        // If no custom colors, use COLORS palette (for backward compatibility)
+        if (!borderColor) {
+            const c = COLORS[node.color || 'blue'];
+            borderColor = isDark ? c.dark_border : c.border;
+        }
+        if (!fillColor) {
+            const c = COLORS[node.color || 'blue'];
+            fillColor = isDark ? c.dark_bg : c.bg;
+        }
+
+        const width = node.width || 150;
+        const height = node.height || 60;
+        const borderWidth = node.borderWidth || 2;
+        const borderDash = node.borderDash || 'solid';
+        const shape = node.shape || 'rectangle';
+        const fontSize = node.fontSize || 13;
+        const fontFamily = node.fontFamily || 'Roboto';
+        const fontColor = node.fontColor || borderColor;
+        const fontBold = node.fontBold ? 'bold' : 'normal';
+        const fontItalic = node.fontItalic ? 'italic' : 'normal';
+        const fontUnderline = node.fontUnderline ? 'underline' : 'none';
+        const titleHighlight = node.titleHighlight || '';
+
+        const descFontSize = node.descFontSize || 10;
+        const descFontFamily = node.descFontFamily || 'Roboto';
+        const descFontColor = node.descFontColor || fontColor;
+        const descFontBold = node.descFontBold ? 'bold' : 'normal';
+        const descFontItalic = node.descFontItalic ? 'italic' : 'normal';
+        const descFontUnderline = node.descFontUnderline ? 'underline' : 'none';
+        const descHighlight = node.descHighlight || '';
+
         const tags = (node.tags || '').split(',').map(t => t.trim()).filter(Boolean);
 
         const el = document.createElement('div');
         el.className = 'node' + (node.id === selectedNodeId ? ' selected' : '');
         el.id = 'node-' + node.id;
         el.style.left = node.x + 'px';
-        el.style.top  = node.y + 'px';
-        el.style.borderColor = border;
-        el.style.background  = bg;
-        el.style.boxShadow   = `0 2px 12px ${border}33`;
+        el.style.top = node.y + 'px';
+        el.style.width = width + 'px';
+        el.style.height = height + 'px';
+        el.style.borderColor = borderColor;
+        el.style.borderWidth = borderWidth + 'px';
+        el.style.background = fillColor;
+        el.style.boxShadow = `0 2px 12px ${borderColor}33`;
+
+        // Apply shape styling
+        if (shape === 'rounded') {
+            el.style.borderRadius = '8px';
+        } else if (shape === 'circle') {
+            el.style.borderRadius = '50%';
+        } else if (shape === 'diamond') {
+            el.style.transform = 'rotate(45deg)';
+        }
+
+        // Apply border dash pattern
+        const dashPatterns = {
+            solid: 'solid',
+            dotted: 'dotted',
+            dashed: 'dashed',
+            longdash: 'dashed',
+            dashdot: 'dashed'
+        };
+        el.style.borderStyle = dashPatterns[borderDash] || 'solid';
+
+        // Build title HTML with highlighting
+        let titleHtml = node.title || 'Untitled';
+        if (titleHighlight) {
+            titleHtml = `<span style="background-color:${titleHighlight}44;padding:2px 4px;border-radius:3px;display:inline-block">${escHtml(titleHtml)}</span>`;
+        } else {
+            titleHtml = escHtml(titleHtml);
+        }
+
+        // Build description HTML with highlighting
+        let descHtml = '';
+        if (node.desc) {
+            let descText = node.desc;
+            if (descHighlight) {
+                descText = `<span style="background-color:${descHighlight}44;padding:2px 4px;border-radius:3px;display:inline-block">${escHtml(descText)}</span>`;
+            } else {
+                descText = escHtml(descText);
+            }
+            descHtml = `<p class="node-desc" style="font-size:${descFontSize}px;font-family:${descFontFamily};color:${descFontColor};font-weight:${descFontBold};font-style:${descFontItalic};text-decoration:${descFontUnderline}">${descText}</p>`;
+        }
+
+        // For diamond shape, we need to counter-rotate the content
+        const contentTransform = shape === 'diamond' ? 'rotate(-45deg)' : 'none';
+        const contentStyle = shape === 'diamond' ? `style="transform: rotate(-45deg);width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center"` : '';
 
         el.innerHTML = `
-            <div class="node-title" style="color:${border}">${escHtml(node.title)}</div>
-            ${node.desc ? `<p class="node-desc">${escHtml(node.desc)}</p>` : ''}
-            ${tags.length ? `<div class="node-tags">${tags.map(t =>
-                `<span class="node-tag" style="background:${border}22;color:${border}">${escHtml(t)}</span>`
-            ).join('')}</div>` : ''}
+            <div ${contentStyle}>
+                <div class="node-title" style="color:${fontColor};font-size:${fontSize}px;font-family:${fontFamily};font-weight:${fontBold};font-style:${fontItalic};text-decoration:${fontUnderline}">${titleHtml}</div>
+                ${descHtml}
+                ${tags.length ? `<div class="node-tags">${tags.map(t =>
+                    `<span class="node-tag" style="background:${borderColor}22;color:${borderColor}">${escHtml(t)}</span>`
+                ).join('')}</div>` : ''}
+            </div>
         `;
         el.addEventListener('click', e => { e.stopPropagation(); selectNode(node.id); });
         layer.appendChild(el);
@@ -518,30 +645,235 @@ function nodeCenter(nodeId) {
     };
 }
 
+// Calculate the edge point of a node boundary in a given direction (for better edge positioning)
+function getNodeEdgePoint(nodeId, directionVec) {
+    const el = document.getElementById('node-' + nodeId);
+    if (!el) return null;
+    
+    const cx = parseFloat(el.style.left) + el.offsetWidth / 2;
+    const cy = parseFloat(el.style.top) + el.offsetHeight / 2;
+    const hw = el.offsetWidth / 2;   // half width
+    const hh = el.offsetHeight / 2;  // half height
+    
+    // Auto: find which edge of the rectangle we intersect
+    // Normalize the direction vector
+    const len = Math.sqrt(directionVec.x * directionVec.x + directionVec.y * directionVec.y);
+    if (len === 0) return nodeCenter(nodeId);
+    const dx = directionVec.x / len;
+    const dy = directionVec.y / len;
+    
+    // Find which edge of the rectangle we intersect
+    let t;
+    if (Math.abs(dx) > 0 && Math.abs(dy) > 0) {
+        const tx = Math.abs(hw / dx);
+        const ty = Math.abs(hh / dy);
+        t = Math.min(tx, ty);
+    } else if (Math.abs(dx) > 0) {
+        t = Math.abs(hw / dx);
+    } else {
+        t = Math.abs(hh / dy);
+    }
+    
+    const x = cx + dx * t;
+    const y = cy + dy * t;
+    
+    // Apply canvas transform
+    return {
+        x: x * transform.scale + transform.x,
+        y: y * transform.scale + transform.y,
+    };
+}
+
 function redrawEdges() {
     const layer = document.getElementById('edges-layer');
     layer.innerHTML = '';
     const isDark = document.body.classList.contains('dark-mode');
-    const edgeCol = isDark ? '#555' : '#adb5bd';
-    document.getElementById('ah-poly').style.fill = edgeCol;
+    const defaultCol = isDark ? '#555' : '#adb5bd';
+    const selCol     = isDark ? '#1e90ff' : '#007bff';
+
+    // Update default marker colors
+    document.getElementById('ah-poly').style.fill = defaultCol;
+    document.getElementById('oa-poly').style.stroke = defaultCol;
+    document.getElementById('dm-poly').style.fill = defaultCol;
+    document.getElementById('ci-circle').style.fill = defaultCol;
+
+    // Create color-specific markers for all edge colors
+    const markerGroup = document.getElementById('color-markers');
+    markerGroup.innerHTML = '';
+    EDGE_COLORS.forEach(c => {
+        if (!c.value) return;
+        // Filled arrow marker
+        const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+        marker.setAttribute('id', 'arrow-' + c.value.substring(1));
+        marker.setAttribute('markerWidth', '8');
+        marker.setAttribute('markerHeight', '7');
+        marker.setAttribute('refX', '7');
+        marker.setAttribute('refY', '3.5');
+        marker.setAttribute('orient', 'auto');
+        const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        poly.setAttribute('points', '0 0, 8 3.5, 0 7');
+        poly.style.fill = c.value;
+        marker.appendChild(poly);
+        markerGroup.appendChild(marker);
+
+        // Open arrow marker
+        const markerOpen = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+        markerOpen.setAttribute('id', 'open-arrow-' + c.value.substring(1));
+        markerOpen.setAttribute('markerWidth', '8');
+        markerOpen.setAttribute('markerHeight', '7');
+        markerOpen.setAttribute('refX', '7');
+        markerOpen.setAttribute('refY', '3.5');
+        markerOpen.setAttribute('orient', 'auto');
+        const polyOpen = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+        polyOpen.setAttribute('points', '0 0, 8 3.5, 0 7');
+        polyOpen.style.fill = 'none';
+        polyOpen.style.stroke = c.value;
+        polyOpen.style.strokeWidth = '1';
+        markerOpen.appendChild(polyOpen);
+        markerGroup.appendChild(markerOpen);
+
+        // Diamond marker
+        const markerDiamond = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+        markerDiamond.setAttribute('id', 'diamond-' + c.value.substring(1));
+        markerDiamond.setAttribute('markerWidth', '8');
+        markerDiamond.setAttribute('markerHeight', '8');
+        markerDiamond.setAttribute('refX', '4');
+        markerDiamond.setAttribute('refY', '4');
+        markerDiamond.setAttribute('orient', 'auto');
+        const diamondPoly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        diamondPoly.setAttribute('points', '4 0, 8 4, 4 8, 0 4');
+        diamondPoly.style.fill = c.value;
+        markerDiamond.appendChild(diamondPoly);
+        markerGroup.appendChild(markerDiamond);
+
+        // Circle marker
+        const markerCircle = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+        markerCircle.setAttribute('id', 'circle-' + c.value.substring(1));
+        markerCircle.setAttribute('markerWidth', '8');
+        markerCircle.setAttribute('markerHeight', '8');
+        markerCircle.setAttribute('refX', '4');
+        markerCircle.setAttribute('refY', '4');
+        markerCircle.setAttribute('orient', 'auto');
+        const circlePoly = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circlePoly.setAttribute('cx', '4');
+        circlePoly.setAttribute('cy', '4');
+        circlePoly.setAttribute('r', '2.5');
+        circlePoly.style.fill = c.value;
+        markerCircle.appendChild(circlePoly);
+        markerGroup.appendChild(markerCircle);
+    });
 
     const map = currentMap();
     if (!map) return;
 
     map.edges.forEach(edge => {
-        const a = nodeCenter(edge.from), b = nodeCenter(edge.to);
+        const a = getNodeEdgePoint(edge.from, { x: map.nodes[edge.to].x - map.nodes[edge.from].x, y: map.nodes[edge.to].y - map.nodes[edge.from].y });
+        const b = getNodeEdgePoint(edge.to, { x: map.nodes[edge.from].x - map.nodes[edge.to].x, y: map.nodes[edge.from].y - map.nodes[edge.to].y });
         if (!a || !b) return;
+        
         const isSel = selectedNodeId === edge.from || selectedNodeId === edge.to;
-        const col = isSel ? (isDark ? '#1e90ff' : '#007bff') : edgeCol;
+        
+        // Resolve color
+        const edgeColor = edge.color || '';
+        const lineColor = edgeColor || (isSel ? selCol : defaultCol);
+        
+        // Resolve thickness
+        const thickness = edge.thickness || '2';
+        const actualThickness = parseFloat(thickness);
+        
+        // Resolve dash pattern
+        const dashStyle = edge.dash || 'solid';
+        const dashPattern = DASH_MAP[dashStyle] || 'none';
+        
+        // Resolve arrow type
+        const arrowType = edge.type || 'arrow';
+        
         const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2 - 30;
 
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         path.setAttribute('d', `M${a.x},${a.y} Q${mx},${my} ${b.x},${b.y}`);
         path.setAttribute('fill', 'none');
-        path.setAttribute('stroke', col);
-        path.setAttribute('stroke-width', isSel ? 2.5 : 1.8);
-        path.setAttribute('marker-end', isSel ? 'url(#arrowhead-sel)' : 'url(#arrowhead)');
+        path.setAttribute('stroke', lineColor);
+        path.setAttribute('stroke-width', actualThickness);
+        if (dashPattern !== 'none') {
+            path.setAttribute('stroke-dasharray', dashPattern);
+        }
+        
+        // Set marker based on arrow type and color
+        if (arrowType === 'arrow') {
+            if (edgeColor) {
+                path.setAttribute('marker-end', 'url(#arrow-' + edgeColor.substring(1) + ')');
+            } else {
+                path.setAttribute('marker-end', isSel ? 'url(#arrowhead-sel)' : 'url(#arrowhead)');
+            }
+        } else if (arrowType === 'open') {
+            if (edgeColor) {
+                path.setAttribute('marker-end', 'url(#open-arrow-' + edgeColor.substring(1) + ')');
+            } else {
+                path.setAttribute('marker-end', isSel ? 'url(#open-arrow-sel)' : 'url(#open-arrow)');
+            }
+        } else if (arrowType === 'bidirectional') {
+            if (edgeColor) {
+                path.setAttribute('marker-end', 'url(#arrow-' + edgeColor.substring(1) + ')');
+                path.setAttribute('marker-start', 'url(#arrow-' + edgeColor.substring(1) + ')');
+            } else {
+                path.setAttribute('marker-end', isSel ? 'url(#arrowhead-sel)' : 'url(#arrowhead)');
+                path.setAttribute('marker-start', isSel ? 'url(#arrowhead-sel)' : 'url(#arrowhead)');
+            }
+        } else if (arrowType === 'diamond') {
+            if (edgeColor) {
+                path.setAttribute('marker-end', 'url(#diamond-' + edgeColor.substring(1) + ')');
+            } else {
+                path.setAttribute('marker-end', 'url(#diamond-default)');
+            }
+        } else if (arrowType === 'circle') {
+            if (edgeColor) {
+                path.setAttribute('marker-end', 'url(#circle-' + edgeColor.substring(1) + ')');
+            } else {
+                path.setAttribute('marker-end', 'url(#circle-default)');
+            }
+        }
+        // If arrowType is 'line' or 'none', no marker is added
+        
         layer.appendChild(path);
+        
+        // Render edge label if present
+        if (edge.label && edge.label.trim()) {
+            const labelX = mx + (edge.labelOffsetX || 0);
+            const labelY = my + (edge.labelOffsetY !== undefined ? edge.labelOffsetY : -34);
+            
+            const labelFontSize = edge.labelFontSize || 11;
+            const labelFontFamily = edge.labelFontFamily || 'Roboto';
+            const labelFontColor = edge.labelFontColor || lineColor;
+            const labelFontBold = edge.labelFontBold ? 'bold' : 'normal';
+            const labelFontItalic = edge.labelFontItalic ? 'italic' : 'normal';
+            const labelFontUnderline = edge.labelFontUnderline ? 'underline' : 'none';
+            const labelHighlight = edge.labelHighlight || '';
+            
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', labelX);
+            text.setAttribute('y', labelY);
+            text.setAttribute('text-anchor', 'middle');
+            text.style.fontSize = labelFontSize + 'px';
+            text.style.fontFamily = labelFontFamily;
+            text.style.fill = labelFontColor;
+            text.style.fontWeight = labelFontBold;
+            text.style.fontStyle = labelFontItalic;
+            text.style.textDecoration = labelFontUnderline;
+            text.style.pointerEvents = 'none';
+            
+            // Add highlighting if set
+            if (labelHighlight) {
+                const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+                tspan.textContent = edge.label;
+                tspan.style.background = labelHighlight + '44';
+                text.appendChild(tspan);
+            } else {
+                text.textContent = edge.label;
+            }
+            
+            layer.appendChild(text);
+        }
     });
 }
 
@@ -566,8 +898,13 @@ function renderInfoPanel() {
 
     panel.classList.remove('hidden');
     const isDark = document.body.classList.contains('dark-mode');
-    const c = COLORS[node.color || 'blue'];
-    const col = isDark ? c.dark_border : c.border;
+    
+    // Use custom border color if set, otherwise fall back to COLORS palette
+    let col = node.borderColor || '';
+    if (!col) {
+        const c = COLORS[node.color || 'blue'];
+        col = isDark ? c.dark_border : c.border;
+    }
 
     document.getElementById('info-title').textContent = node.title;
     document.getElementById('info-title').style.color = col;
@@ -622,8 +959,14 @@ function renderInfoPanel() {
             const otherId = edge.from === selectedNodeId ? edge.to : edge.from;
             const other = map.nodes[otherId];
             if (!other) return '';
-            const oc = COLORS[other.color || 'blue'];
-            const ocol = isDark ? oc.dark_border : oc.border;
+            
+            // Use custom border color if set, otherwise fall back to COLORS palette
+            let ocol = other.borderColor || '';
+            if (!ocol) {
+                const oc = COLORS[other.color || 'blue'];
+                ocol = isDark ? oc.dark_border : oc.border;
+            }
+            
             return `<button class="info-conn" onclick="selectNode('${otherId}')"
                 style="color:${ocol};background:${ocol}18;border:none">
                 <i class="fas fa-circle" style="font-size:7px"></i>
