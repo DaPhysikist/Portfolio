@@ -176,14 +176,22 @@
             position: absolute;
             top: 0; left: 0;
             width: 100%; height: 100%;
-            pointer-events: none;
+            pointer-events: auto;
+            z-index: 1;
+        }
+        #canvas-svg.clickable {
+            pointer-events: auto;
         }
         #nodes-layer {
             position: absolute;
             top: 0; left: 0;
             width: 100%; height: 100%;
             transform-origin: 0 0;
+            z-index: 2;
+            pointer-events: auto;
         }
+        #edges-layer { pointer-events: auto; }
+        #edges-layer path, #edges-layer rect, #edges-layer text { pointer-events: auto; }
 
         /* ── Node ── */
         .node {
@@ -278,8 +286,8 @@
             background: var(--bg-color);
             font-size: 12px;
         }
-        .link-entry a { color: var(--primary-color); text-decoration: none; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .link-entry a:hover { text-decoration: underline; }
+        .link-entry-url { color: var(--primary-color); text-decoration: none; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; background: none; border: none; font-family: 'Roboto', sans-serif; font-size: 12px; text-align: left; padding: 0; }
+        .link-entry-url:hover { text-decoration: underline; }
         .link-entry-del { background: none; border: none; cursor: pointer; color: #888; font-size: 11px; }
         .link-entry-del:hover { color: #e74c3c; }
         .add-link-row { display: flex; gap: 5px; margin-top: 5px; }
@@ -444,6 +452,57 @@
         .edge-arrow { fill: var(--edge-color); }
         .edge-arrow.selected { fill: var(--edge-selected); }
 
+        /* ── Edge sidebar ── */
+        .edge-sidebar {
+            width: 260px;
+            flex-shrink: 0;
+            background: var(--sidebar-bg);
+            border-left: 1px solid var(--border-color);
+            padding: 1.25rem 1rem;
+            overflow-y: auto;
+            z-index: 10;
+        }
+        .edge-sidebar.hidden { display: none; }
+        .edge-sidebar h2 { font-size: 15px; margin: 0 0 1rem; font-weight: 700; display: flex; align-items: center; gap: 7px; }
+        .color-swatches {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 4px;
+        }
+        .color-swatch {
+            width: 24px; height: 24px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: transform 0.1s, border-color 0.1s;
+        }
+        .color-swatch:hover { transform: scale(1.15); }
+        .color-swatch.active { border-color: var(--text-color); }
+        .dash-options, .type-options, .thickness-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 4px;
+        }
+        .opt-btn {
+            padding: 5px 10px;
+            border-radius: 7px;
+            border: 1px solid var(--border-color);
+            background: var(--card-bg);
+            color: var(--text-color);
+            cursor: pointer;
+            font-size: 12px;
+            font-family: 'Roboto', sans-serif;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .opt-btn:hover { border-color: var(--primary-color); color: var(--primary-color); }
+        .opt-btn.active { background: var(--primary-color); color: #fff; border-color: var(--primary-color); }
+        .opt-btn svg { flex-shrink: 0; }
+
         /* ── Empty state ── */
         .empty-hint {
             position: absolute;
@@ -507,7 +566,7 @@
             <i class="fas fa-expand"></i> Fit View
         </button>
         <button class="tool-btn" onclick="exportJSON()" title="Downloads map-data.json — commit this file to publish">
-            <i class="fas fa-download"></i> Export & publish
+            <i class="fas fa-download"></i> Export
         </button>
         <label class="tool-btn" style="cursor:pointer">
             <i class="fas fa-upload"></i> Import
@@ -525,13 +584,28 @@
     <div class="canvas-wrap" id="canvas-wrap">
         <svg id="canvas-svg" xmlns="http://www.w3.org/2000/svg">
             <defs>
-                <marker id="arrowhead" markerWidth="8" markerHeight="7"
-                        refX="7" refY="3.5" orient="auto">
+                <!-- default arrowhead (filled) -->
+                <marker id="arr-end" markerWidth="8" markerHeight="7" refX="7" refY="3.5" orient="auto">
                     <polygon points="0 0, 8 3.5, 0 7" class="edge-arrow" id="ah-poly"/>
                 </marker>
-                <marker id="arrowhead-sel" markerWidth="8" markerHeight="7"
-                        refX="7" refY="3.5" orient="auto">
-                    <polygon points="0 0, 8 3.5, 0 7" class="edge-arrow selected"/>
+                <!-- open arrowhead -->
+                <marker id="arr-open-end" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+                    <polyline points="1,1 9,5 1,9" fill="none" stroke-width="1.5" class="edge-open-arrow"/>
+                </marker>
+                <!-- diamond -->
+                <marker id="arr-diamond-end" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
+                    <polygon points="5,1 9,5 5,9 1,5" class="edge-arrow"/>
+                </marker>
+                <!-- circle -->
+                <marker id="arr-circle-end" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+                    <circle cx="4" cy="4" r="3" class="edge-arrow"/>
+                </marker>
+                <!-- start arrowhead for bidirectional -->
+                <marker id="arr-start" markerWidth="8" markerHeight="7" refX="1" refY="3.5" orient="auto-start-reverse">
+                    <polygon points="0 0, 8 3.5, 0 7" class="edge-arrow"/>
+                </marker>
+                <marker id="arr-open-start" markerWidth="10" markerHeight="10" refX="1" refY="5" orient="auto-start-reverse">
+                    <polyline points="1,1 9,5 1,9" fill="none" stroke-width="1.5" class="edge-open-arrow"/>
                 </marker>
             </defs>
             <g id="edges-layer"></g>
@@ -554,8 +628,91 @@
         <h2 id="sidebar-title">Concept</h2>
 
         <div class="sidebar-section">
+            <div class="sidebar-label">Box styling</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <div>
+                    <label style="font-size:11px;color:#888">Width</label>
+                    <input type="number" id="sb-width" min="80" max="300" style="width:100%" oninput="updateNode('width', parseInt(this.value))">
+                </div>
+                <div>
+                    <label style="font-size:11px;color:#888">Height</label>
+                    <input type="number" id="sb-height" min="40" max="200" style="width:100%" oninput="updateNode('height', parseInt(this.value))">
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-label">Shape</div>
+            <select id="sb-shape" style="width:100%" onchange="updateNode('shape', this.value)">
+                <option value="rectangle">Rectangle</option>
+                <option value="rounded">Rounded</option>
+                <option value="circle">Circle</option>
+                <option value="diamond">Diamond</option>
+            </select>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-label">Border</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+                <div>
+                    <label style="font-size:11px;color:#888">Width</label>
+                    <input type="number" id="sb-border-width" min="1" max="8" style="width:100%" oninput="updateNode('borderWidth', parseInt(this.value))">
+                </div>
+                <div>
+                    <label style="font-size:11px;color:#888">Color</label>
+                    <input type="color" id="sb-border-color" style="width:100%;height:32px;cursor:pointer" oninput="updateNode('borderColor', this.value)">
+                </div>
+            </div>
+            <div>
+                <label style="font-size:11px;color:#888">Style</label>
+                <select id="sb-border-dash" style="width:100%" onchange="updateNode('borderDash', this.value)">
+                    <option value="solid">Solid</option>
+                    <option value="dotted">Dotted</option>
+                    <option value="dashed">Dashed</option>
+                    <option value="double">Double</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-label">Fill color</div>
+            <input type="color" id="sb-fill-color" style="width:100%;height:32px;cursor:pointer" oninput="updateNode('fillColor', this.value)">
+        </div>
+
+        <div class="sidebar-section">
             <div class="sidebar-label">Title</div>
             <input type="text" id="sb-title" placeholder="Concept title" oninput="updateNode('title', this.value)">
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-label">Title styling</div>
+            <div style="margin-bottom:8px">
+                <label style="font-size:11px;color:#888">Font family</label>
+                <select id="sb-font-family" style="width:100%" onchange="updateNode('fontFamily', this.value)">
+                    <option value="Roboto">Roboto (default)</option>
+                    <option value="Arial">Arial</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Courier New">Courier New</option>
+                    <option value="Times New Roman">Times New Roman</option>
+                </select>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 32px 32px 32px;gap:6px;margin-bottom:8px;align-items:flex-end">
+                <div>
+                    <label style="font-size:11px;color:#888">Size</label>
+                    <input type="number" id="sb-font-size" min="8" max="24" style="width:100%" oninput="updateNode('fontSize', parseInt(this.value))">
+                </div>
+                <div>
+                    <label style="font-size:11px;color:#888">Color</label>
+                    <input type="color" id="sb-font-color" style="width:100%;height:32px;cursor:pointer" oninput="updateNode('fontColor', this.value)">
+                </div>
+                <button class="tool-btn" id="sb-font-bold" style="padding:4px;height:32px;width:32px;display:flex;align-items:center;justify-content:center" title="Bold" onclick="updateNode('fontBold', !currentMapData().nodes[selectedNodeId].fontBold)"><i class="fas fa-bold" style="font-size:12px"></i></button>
+                <button class="tool-btn" id="sb-font-italic" style="padding:4px;height:32px;width:32px;display:flex;align-items:center;justify-content:center" title="Italic" onclick="updateNode('fontItalic', !currentMapData().nodes[selectedNodeId].fontItalic)"><i class="fas fa-italic" style="font-size:12px"></i></button>
+                <button class="tool-btn" id="sb-font-underline" style="padding:4px;height:32px;width:32px;display:flex;align-items:center;justify-content:center" title="Underline" onclick="updateNode('fontUnderline', !currentMapData().nodes[selectedNodeId].fontUnderline)"><u style="font-size:11px">U</u></button>
+            </div>
+            <div>
+                <label style="font-size:11px;color:#888">Highlight</label>
+                <input type="color" id="sb-title-highlight" style="width:100%;height:32px;cursor:pointer" oninput="updateNode('titleHighlight', this.value)">
+            </div>
         </div>
 
         <div class="sidebar-section">
@@ -564,21 +721,39 @@
         </div>
 
         <div class="sidebar-section">
-            <div class="sidebar-label">Tags (comma separated)</div>
-            <input type="text" id="sb-tags" placeholder="e.g. hardware, ESP32" oninput="updateNode('tags', this.value)">
+            <div class="sidebar-label">Description styling</div>
+            <div style="margin-bottom:8px">
+                <label style="font-size:11px;color:#888">Font family</label>
+                <select id="sb-desc-font-family" style="width:100%" onchange="updateNode('descFontFamily', this.value)">
+                    <option value="Roboto">Roboto (default)</option>
+                    <option value="Arial">Arial</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Courier New">Courier New</option>
+                    <option value="Times New Roman">Times New Roman</option>
+                </select>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 32px 32px 32px;gap:6px;margin-bottom:8px;align-items:flex-end">
+                <div>
+                    <label style="font-size:11px;color:#888">Size</label>
+                    <input type="number" id="sb-desc-font-size" min="8" max="24" style="width:100%" oninput="updateNode('descFontSize', parseInt(this.value))">
+                </div>
+                <div>
+                    <label style="font-size:11px;color:#888">Color</label>
+                    <input type="color" id="sb-desc-font-color" style="width:100%;height:32px;cursor:pointer" oninput="updateNode('descFontColor', this.value)">
+                </div>
+                <button class="tool-btn" id="sb-desc-font-bold" style="padding:4px;height:32px;width:32px;display:flex;align-items:center;justify-content:center" title="Bold" onclick="updateNode('descFontBold', !currentMapData().nodes[selectedNodeId].descFontBold)"><i class="fas fa-bold" style="font-size:12px"></i></button>
+                <button class="tool-btn" id="sb-desc-font-italic" style="padding:4px;height:32px;width:32px;display:flex;align-items:center;justify-content:center" title="Italic" onclick="updateNode('descFontItalic', !currentMapData().nodes[selectedNodeId].descFontItalic)"><i class="fas fa-italic" style="font-size:12px"></i></button>
+                <button class="tool-btn" id="sb-desc-font-underline" style="padding:4px;height:32px;width:32px;display:flex;align-items:center;justify-content:center" title="Underline" onclick="updateNode('descFontUnderline', !currentMapData().nodes[selectedNodeId].descFontUnderline)"><u style="font-size:11px">U</u></button>
+            </div>
+            <div>
+                <label style="font-size:11px;color:#888">Highlight</label>
+                <input type="color" id="sb-desc-highlight" style="width:100%;height:32px;cursor:pointer" oninput="updateNode('descHighlight', this.value)">
+            </div>
         </div>
 
         <div class="sidebar-section">
-            <div class="sidebar-label">Color</div>
-            <select id="sb-color" onchange="updateNode('color', this.value)">
-                <option value="blue">Blue (default)</option>
-                <option value="green">Green</option>
-                <option value="orange">Orange</option>
-                <option value="red">Red</option>
-                <option value="purple">Purple</option>
-                <option value="teal">Teal</option>
-                <option value="gray">Gray</option>
-            </select>
+            <div class="sidebar-label">Tags (comma separated)</div>
+            <input type="text" id="sb-tags" placeholder="e.g. hardware, ESP32" oninput="updateNode('tags', this.value)">
         </div>
 
         <div class="sidebar-section">
@@ -609,6 +784,130 @@
 
         <button class="btn-danger" onclick="deleteSelectedNode()">
             <i class="fas fa-trash"></i> Delete concept
+        </button>
+    </aside>
+
+    <!-- EDGE SIDEBAR -->
+    <aside class="edge-sidebar hidden" id="edge-sidebar">
+        <h2><i class="fas fa-bezier-curve" style="color:var(--primary-color)"></i> Connector</h2>
+
+        <div class="sidebar-section">
+            <div class="sidebar-label">Type</div>
+            <div class="type-options" id="es-type">
+                <button class="opt-btn active" data-val="arrow" onclick="updateEdge('type','arrow')">
+                    <svg width="28" height="12"><line x1="2" y1="6" x2="20" y2="6" stroke="currentColor" stroke-width="1.5"/><polyline points="14,2 22,6 14,10" fill="none" stroke="currentColor" stroke-width="1.5"/></svg> Arrow
+                </button>
+                <button class="opt-btn" data-val="bidirectional" onclick="updateEdge('type','bidirectional')">
+                    <svg width="28" height="12"><line x1="2" y1="6" x2="26" y2="6" stroke="currentColor" stroke-width="1.5"/><polyline points="8,2 2,6 8,10" fill="none" stroke="currentColor" stroke-width="1.5"/><polyline points="20,2 26,6 20,10" fill="none" stroke="currentColor" stroke-width="1.5"/></svg> Both
+                </button>
+                <button class="opt-btn" data-val="line" onclick="updateEdge('type','line')">
+                    <svg width="28" height="12"><line x1="2" y1="6" x2="26" y2="6" stroke="currentColor" stroke-width="1.5"/></svg> Line
+                </button>
+                <button class="opt-btn" data-val="open" onclick="updateEdge('type','open')">
+                    <svg width="28" height="12"><line x1="2" y1="6" x2="20" y2="6" stroke="currentColor" stroke-width="1.5"/><polyline points="14,2 22,6 14,10" fill="none" stroke="currentColor" stroke-width="1.5"/></svg> Open
+                </button>
+                <button class="opt-btn" data-val="diamond" onclick="updateEdge('type','diamond')">
+                    <svg width="36" height="12"><line x1="2" y1="6" x2="24" y2="6" stroke="currentColor" stroke-width="1.5"/><polygon points="28,3 34,6 28,9 22,6" fill="currentColor"/></svg> Diamond
+                </button>
+                <button class="opt-btn" data-val="circle" onclick="updateEdge('type','circle')">
+                    <svg width="34" height="12"><line x1="2" y1="6" x2="22" y2="6" stroke="currentColor" stroke-width="1.5"/><circle cx="28" cy="6" r="4" fill="currentColor"/></svg> Circle
+                </button>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-label">Line style</div>
+            <div class="dash-options" id="es-dash">
+                <button class="opt-btn active" data-val="solid" onclick="updateEdge('dash','solid')">
+                    <svg width="28" height="8"><line x1="2" y1="4" x2="26" y2="4" stroke="currentColor" stroke-width="2"/></svg> Solid
+                </button>
+                <button class="opt-btn" data-val="dotted" onclick="updateEdge('dash','dotted')">
+                    <svg width="28" height="8"><line x1="2" y1="4" x2="26" y2="4" stroke="currentColor" stroke-width="2" stroke-dasharray="2,3"/></svg> Dotted
+                </button>
+                <button class="opt-btn" data-val="dashed" onclick="updateEdge('dash','dashed')">
+                    <svg width="28" height="8"><line x1="2" y1="4" x2="26" y2="4" stroke="currentColor" stroke-width="2" stroke-dasharray="6,4"/></svg> Dashed
+                </button>
+                <button class="opt-btn" data-val="longdash" onclick="updateEdge('dash','longdash')">
+                    <svg width="28" height="8"><line x1="2" y1="4" x2="26" y2="4" stroke="currentColor" stroke-width="2" stroke-dasharray="12,4"/></svg> Long dash
+                </button>
+                <button class="opt-btn" data-val="dashdot" onclick="updateEdge('dash','dashdot')">
+                    <svg width="28" height="8"><line x1="2" y1="4" x2="26" y2="4" stroke="currentColor" stroke-width="2" stroke-dasharray="8,3,2,3"/></svg> Dash-dot
+                </button>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-label">Thickness</div>
+            <div class="thickness-options" id="es-thickness">
+                <button class="opt-btn active" data-val="1" onclick="updateEdge('thickness','1')">
+                    <svg width="28" height="10"><line x1="2" y1="5" x2="26" y2="5" stroke="currentColor" stroke-width="1"/></svg> Thin
+                </button>
+                <button class="opt-btn" data-val="2" onclick="updateEdge('thickness','2')">
+                    <svg width="28" height="10"><line x1="2" y1="5" x2="26" y2="5" stroke="currentColor" stroke-width="2"/></svg> Normal
+                </button>
+                <button class="opt-btn" data-val="3.5" onclick="updateEdge('thickness','3.5')">
+                    <svg width="28" height="10"><line x1="2" y1="5" x2="26" y2="5" stroke="currentColor" stroke-width="3.5"/></svg> Thick
+                </button>
+                <button class="opt-btn" data-val="6" onclick="updateEdge('thickness','6')">
+                    <svg width="28" height="10"><line x1="2" y1="5" x2="26" y2="5" stroke="currentColor" stroke-width="6"/></svg> Bold
+                </button>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-label">Color</div>
+            <div class="color-swatches" id="es-color"></div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-label">Label</div>
+            <input type="text" id="es-label" placeholder="e.g. causes, leads to…" oninput="updateEdge('label', this.value)">
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-label">Label text styling</div>
+            <div style="margin-bottom:8px">
+                <label style="font-size:11px;color:#888">Font family</label>
+                <select id="es-label-font-family" style="width:100%" onchange="updateEdge('labelFontFamily', this.value)">
+                    <option value="Roboto">Roboto (default)</option>
+                    <option value="Arial">Arial</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Courier New">Courier New</option>
+                    <option value="Times New Roman">Times New Roman</option>
+                </select>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 32px 32px 32px;gap:6px;margin-bottom:8px;align-items:flex-end">
+                <div>
+                    <label style="font-size:11px;color:#888">Size</label>
+                    <input type="number" id="es-label-font-size" min="8" max="24" style="width:100%" oninput="updateEdge('labelFontSize', parseInt(this.value))">
+                </div>
+                <div>
+                    <label style="font-size:11px;color:#888">Color</label>
+                    <input type="color" id="es-label-font-color" style="width:100%;height:32px;cursor:pointer" oninput="updateEdge('labelFontColor', this.value)">
+                </div>
+                <button class="tool-btn" id="es-label-font-bold" style="padding:4px;height:32px;width:32px;display:flex;align-items:center;justify-content:center" title="Bold" onclick="updateEdge('labelFontBold', !currentMapData().edges.find(e=>e.id===selectedEdgeId).labelFontBold)"><i class="fas fa-bold" style="font-size:12px"></i></button>
+                <button class="tool-btn" id="es-label-font-italic" style="padding:4px;height:32px;width:32px;display:flex;align-items:center;justify-content:center" title="Italic" onclick="updateEdge('labelFontItalic', !currentMapData().edges.find(e=>e.id===selectedEdgeId).labelFontItalic)"><i class="fas fa-italic" style="font-size:12px"></i></button>
+                <button class="tool-btn" id="es-label-font-underline" style="padding:4px;height:32px;width:32px;display:flex;align-items:center;justify-content:center" title="Underline" onclick="updateEdge('labelFontUnderline', !currentMapData().edges.find(e=>e.id===selectedEdgeId).labelFontUnderline)"><u style="font-size:11px">U</u></button>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-label">Label position offset</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <div>
+                    <label style="font-size:11px;color:#888">X offset</label>
+                    <input type="number" id="es-label-offset-x" min="-100" max="100" style="width:100%" oninput="updateEdge('labelOffsetX', parseInt(this.value) || 0)">
+                </div>
+                <div>
+                    <label style="font-size:11px;color:#888">Y offset</label>
+                    <input type="number" id="es-label-offset-y" min="-100" max="100" style="width:100%" oninput="updateEdge('labelOffsetY', parseInt(this.value) || -34)">
+                </div>
+            </div>
+            <p style="font-size:10px;color:#888;margin:4px 0 0">Drag label on canvas to reposition</p>
+        </div>
+
+        <button class="btn-danger" onclick="deleteSelectedEdge()">
+            <i class="fas fa-unlink"></i> Delete connector
         </button>
     </aside>
 </div>
@@ -665,6 +964,12 @@ const COLORS = {
 let state = {
     maps: {},
     currentMap: null,
+};
+
+// Clipboard storage for copy/paste
+let clipboard = {
+    type: null,  // 'node' or 'edge'
+    data: null
 };
 
 // loadState is async: tries map-data.json first, falls back to localStorage draft
@@ -787,6 +1092,7 @@ function setMode(m) {
 //  RENDER
 // ─────────────────────────────────────────────
 let selectedNodeId = null;
+let selectedEdgeId = null;
 
 function renderAll() {
     renderNodes();
@@ -805,34 +1111,184 @@ function renderNodes() {
     layer.innerHTML = '';
     const isDark = document.body.classList.contains('dark-mode');
     Object.values(currentMapData().nodes).forEach(node => {
-        const c = COLORS[node.color || 'blue'];
-        const border = isDark ? c.dark_border : c.border;
-        const bg = isDark ? c.dark_bg : c.bg;
-
+        // Use defaults: light blue border, light blue background, or use customs
+        let defaultBorder = '#007bff';
+        let defaultBg = '#e8f4ff';
+        if (isDark) {
+            defaultBorder = '#1e90ff';
+            defaultBg = '#1a2d40';
+        }
+        
+        // Apply custom styling or defaults
+        const borderColor = node.borderColor || defaultBorder;
+        const bgColor = node.fillColor || defaultBg;
+        const borderWidth = node.borderWidth || 2;
+        const borderStyle = node.borderDash || 'solid';
+        const shape = node.shape || 'rectangle';
+        const fontSize = node.fontSize || 13;
+        const fontFamily = node.fontFamily || 'Roboto';
+        const fontColor = node.fontColor || borderColor;
+        const descFontSize = node.descFontSize || 10;
+        const descFontFamily = node.descFontFamily || 'Roboto';
+        const descFontColor = node.descFontColor || fontColor;
+        
         const el = document.createElement('div');
         el.className = 'node' + (node.id === selectedNodeId ? ' selected' : '');
         el.id = 'node-' + node.id;
         el.style.left = node.x + 'px';
-        el.style.top  = node.y + 'px';
-        el.style.borderColor = border;
-        el.style.background  = bg;
-        el.style.boxShadow   = `0 2px 12px ${border}33`;
+        el.style.top = node.y + 'px';
+        el.style.width = (node.width || 150) + 'px';
+        el.style.minHeight = (node.height || 60) + 'px';
+        el.style.borderColor = borderColor;
+        el.style.borderWidth = borderWidth + 'px';
+        if (borderStyle !== 'solid') el.style.borderStyle = borderStyle;
+        el.style.background = bgColor;
+        el.style.boxShadow = `0 2px 12px ${borderColor}33`;
+        el.style.fontFamily = fontFamily;
+        el.style.fontSize = fontSize + 'px';
+        el.style.color = fontColor;
+        
+        // Apply shape styling
+        if (shape === 'rounded') el.style.borderRadius = '8px';
+        else if (shape === 'circle') el.style.borderRadius = '50%';
+        else if (shape === 'diamond') {
+            el.style.transform = 'rotate(45deg)';
+            el.style.display = 'flex';
+            el.style.alignItems = 'center';
+            el.style.justifyContent = 'center';
+        }
 
         const tags = (node.tags || '').split(',').map(t=>t.trim()).filter(Boolean);
+        
+        let titleStyle = `color:${fontColor};font-size:${fontSize}px`;
+        if (node.fontBold) titleStyle += ';font-weight:700';
+        if (node.fontItalic) titleStyle += ';font-style:italic';
+        if (node.fontUnderline) titleStyle += ';text-decoration:underline';
+        
+        let titleContent = escHtml(node.title);
+        if (node.titleHighlight) {
+            titleContent = `<span style="background-color:${node.titleHighlight};padding:2px 4px;border-radius:2px;display:inline-block">${titleContent}</span>`;
+        }
+        
+        let descStyle = `color:${descFontColor};font-family:${descFontFamily};font-size:${descFontSize}px;cursor:text;${!node.desc ? 'opacity:0.5' : ''}`;
+        if (node.descFontBold) descStyle += ';font-weight:700';
+        if (node.descFontItalic) descStyle += ';font-style:italic';
+        if (node.descFontUnderline) descStyle += ';text-decoration:underline';
+
+        let descContent = escHtml(node.desc || '(click to add description)');
+        if (node.desc && node.descHighlight) {
+            descContent = `<span style="background-color:${node.descHighlight};padding:2px 4px;border-radius:2px;display:inline-block">${descContent}</span>`;
+        }
 
         el.innerHTML = `
-            <div class="node-title" style="color:${border}">${escHtml(node.title)}</div>
-            ${node.desc ? `<p class="node-desc">${escHtml(node.desc)}</p>` : ''}
-            ${tags.length ? `<div class="node-tags">${tags.map(t=>`<span class="node-tag" style="background:${border}22;color:${border}">${escHtml(t)}</span>`).join('')}</div>` : ''}
+            <div class="node-title" data-field="title" style="${titleStyle};cursor:text">${titleContent}</div>
+            <p class="node-desc" data-field="desc" style="${descStyle}">${descContent}</p>
+            ${tags.length ? `<div class="node-tags">${tags.map(t=>`<span class="node-tag" style="background:${borderColor}22;color:${borderColor}">${escHtml(t)}</span>`).join('')}</div>` : ''}
         `;
+        
+        // Undo diamond transform for inner content
+        if (shape === 'diamond') {
+            const titleEl = el.querySelector('[data-field="title"]');
+            const descEl = el.querySelector('[data-field="desc"]');
+            if (titleEl) titleEl.style.transform = 'rotate(-45deg)';
+            if (descEl) descEl.style.transform = 'rotate(-45deg)';
+        }
+
+        // Add click handlers for title and description editing
+        const titleEl = el.querySelector('[data-field="title"]');
+        const descEl = el.querySelector('[data-field="desc"]');
+        
+        if (titleEl) {
+            titleEl.addEventListener('click', e => {
+                e.stopPropagation();
+                startEditingField(node.id, 'title', titleEl);
+            });
+        }
+        
+        if (descEl) {
+            descEl.addEventListener('click', e => {
+                e.stopPropagation();
+                startEditingField(node.id, 'desc', descEl);
+            });
+        }
 
         // drag
-        el.addEventListener('mousedown', e => onNodeMouseDown(e, node.id));
+        el.addEventListener('mousedown', e => {
+            // Don't drag if clicking text content
+            if (e.target === titleEl || e.target === descEl) return;
+            onNodeMouseDown(e, node.id);
+        });
         el.addEventListener('touchstart', e => onNodeTouchStart(e, node.id), {passive:false});
         el.addEventListener('click', e => onNodeClick(e, node.id));
 
         layer.appendChild(el);
     });
+}
+
+// ─────────────────────────────────────────────
+//  INLINE EDITING
+// ─────────────────────────────────────────────
+function startEditingField(nodeId, field, element) {
+    if (!selectedNodeId || selectedNodeId !== nodeId) {
+        selectNode(nodeId);
+    }
+    
+    const node = currentMapData().nodes[nodeId];
+    const currentValue = node[field] || '';
+    
+    // Clear placeholder text if editing empty field
+    if (!currentValue && element.textContent.includes('(click to add')) {
+        element.textContent = '';
+    }
+    
+    // Make element contenteditable
+    element.contentEditable = true;
+    element.style.outline = '2px solid #007bff';
+    element.style.outlineOffset = '2px';
+    element.style.opacity = '1';
+    element.focus();
+    
+    // Select all text
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    
+    function finishEditing() {
+        const newValue = element.textContent.trim();
+        element.contentEditable = false;
+        element.style.outline = 'none';
+        
+        if (newValue !== currentValue) {
+            updateNode(field, newValue);
+        } else {
+            renderNodes();
+        }
+    }
+    
+    // Save on blur
+    const blurHandler = () => {
+        finishEditing();
+        element.removeEventListener('blur', blurHandler);
+    };
+    element.addEventListener('blur', blurHandler);
+    
+    // Save on Enter, Cancel on Escape
+    const keyHandler = e => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            finishEditing();
+            element.removeEventListener('keydown', keyHandler);
+        } else if (e.key === 'Escape') {
+            element.contentEditable = false;
+            element.style.outline = 'none';
+            element.textContent = currentValue || '(click to add description)';
+            element.removeEventListener('keydown', keyHandler);
+            element.removeEventListener('blur', blurHandler);
+        }
+    };
+    element.addEventListener('keydown', keyHandler);
 }
 
 function renderMapList() {
@@ -862,44 +1318,291 @@ function nodeCenter(nodeId) {
     return { x: x * transform.scale + transform.x, y: y * transform.scale + transform.y };
 }
 
+// Calculate the edge point of a node boundary in a given direction
+// attach: 'auto', 'left', 'right', 'top', 'bottom'
+function getNodeEdgePoint(nodeId, directionVec, attach) {
+    const el = document.getElementById('node-' + nodeId);
+    if (!el) return null;
+    
+    const cx = parseFloat(el.style.left) + el.offsetWidth / 2;
+    const cy = parseFloat(el.style.top) + el.offsetHeight / 2;
+    const hw = el.offsetWidth / 2;   // half width
+    const hh = el.offsetHeight / 2;  // half height
+    
+    // If attachment side is specified, use that instead of auto calculation
+    if (attach && attach !== 'auto') {
+        let x = cx, y = cy;
+        if (attach === 'left') x = cx - hw;
+        else if (attach === 'right') x = cx + hw;
+        else if (attach === 'top') y = cy - hh;
+        else if (attach === 'bottom') y = cy + hh;
+        return { 
+            x: x * transform.scale + transform.x, 
+            y: y * transform.scale + transform.y 
+        };
+    }
+    
+    // Auto: find which edge of the rectangle we intersect
+    // Normalize the direction vector
+    const len = Math.sqrt(directionVec.x * directionVec.x + directionVec.y * directionVec.y);
+    if (len === 0) return nodeCenter(nodeId);
+    const dx = directionVec.x / len;
+    const dy = directionVec.y / len;
+    
+    // Find which edge of the rectangle we intersect by checking which is smaller
+    let t;
+    if (Math.abs(dx) > 0 && Math.abs(dy) > 0) {
+        const tx = Math.abs(hw / dx);
+        const ty = Math.abs(hh / dy);
+        t = Math.min(tx, ty);
+    } else if (Math.abs(dx) > 0) {
+        t = Math.abs(hw / dx);
+    } else {
+        t = Math.abs(hh / dy);
+    }
+    
+    const x = cx + dx * t;
+    const y = cy + dy * t;
+    
+    // Apply canvas transform
+    return { 
+        x: x * transform.scale + transform.x, 
+        y: y * transform.scale + transform.y 
+    };
+}
+
+// ─────────────────────────────────────────────
+//  EDGE COLORS PALETTE
+// ─────────────────────────────────────────────
+const EDGE_COLORS = [
+    { name: 'Default', value: '' },
+    { name: 'Blue',    value: '#007bff' },
+    { name: 'Green',   value: '#28a745' },
+    { name: 'Red',     value: '#e74c3c' },
+    { name: 'Orange',  value: '#fd7e14' },
+    { name: 'Purple',  value: '#6f42c1' },
+    { name: 'Teal',    value: '#20c997' },
+    { name: 'Gray',    value: '#6c757d' },
+    { name: 'Black',   value: '#222222' },
+    { name: 'Pink',    value: '#e83e8c' },
+    { name: 'Yellow',  value: '#ffc107' },
+    { name: 'Cyan',    value: '#17a2b8' },
+];
+
+const DASH_MAP = {
+    solid:    'none',
+    dotted:   '2,4',
+    dashed:   '8,5',
+    longdash: '16,5',
+    dashdot:  '10,4,2,4',
+};
+
 function redrawEdges() {
     const layer = document.getElementById('edges-layer');
     layer.innerHTML = '';
     const isDark = document.body.classList.contains('dark-mode');
-    const edgeCol = isDark ? '#555' : '#adb5bd';
-    const selCol  = isDark ? '#1e90ff' : '#007bff';
+    const defaultCol = isDark ? '#555' : '#adb5bd';
+    const selCol     = isDark ? '#1e90ff' : '#007bff';
+
+    // Update all marker colors to default
+    document.querySelectorAll('.edge-arrow').forEach(p => p.style.fill = defaultCol);
+    document.querySelectorAll('.edge-open-arrow').forEach(p => p.style.stroke = defaultCol);
 
     currentMapData().edges.forEach(edge => {
-        const a = nodeCenter(edge.from), b = nodeCenter(edge.to);
+        const centerA = nodeCenter(edge.from), centerB = nodeCenter(edge.to);
+        if (!centerA || !centerB) return;
+        
+        // Calculate edge boundary points using custom attachment points if specified
+        const edgeDir = { x: centerB.x - centerA.x, y: centerB.y - centerA.y };
+        const oppositeDir = { x: -edgeDir.x, y: -edgeDir.y };
+        
+        const a = getNodeEdgePoint(edge.from, edgeDir, edge.fromAttach);
+        const b = getNodeEdgePoint(edge.to, oppositeDir, edge.toAttach);
         if (!a || !b) return;
-        const sel = selectedNodeId === edge.from || selectedNodeId === edge.to;
-        const col = sel ? selCol : edgeCol;
+        
+        const isSel  = selectedEdgeId === edge.id;
+        const isNodeSel = selectedNodeId === edge.from || selectedNodeId === edge.to;
 
-        // curved path
+        // Resolve color
+        const edgeColor = edge.color || (isNodeSel ? selCol : defaultCol);
+        const strokeCol = isSel ? selCol : edgeColor;
+        const strokeW   = parseFloat(edge.thickness || '2') * (isSel ? 1.2 : 1);
+        const dashArr   = DASH_MAP[edge.dash || 'solid'] || 'none';
+        const edgeType  = edge.type || 'arrow';
+
+        // Curved path
         const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2 - 30;
-        const d = `M${a.x},${a.y} Q${mx},${my} ${b.x},${b.y}`;
+        const d  = `M${a.x},${a.y} Q${mx},${my} ${b.x},${b.y}`;
+
+        // Create a unique per-edge marker by embedding color in id
+        const safeId = edge.id.replace(/[^a-z0-9_]/gi, '_');
+        const mkId   = `mk_${safeId}`;
+
+        // Inject per-edge marker into defs
+        const svgDefs = document.querySelector('#canvas-svg defs');
+        let endMarkerUrl = 'none';
+        let startMarkerUrl = 'none';
+
+        if (edgeType !== 'line') {
+            // end marker
+            const endMk = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+            endMk.setAttribute('id', mkId + '_end');
+            endMk.setAttribute('markerWidth', '10');
+            endMk.setAttribute('markerHeight', '10');
+            endMk.setAttribute('orient', 'auto');
+
+            if (edgeType === 'arrow' || edgeType === 'bidirectional') {
+                endMk.setAttribute('refX', '8'); endMk.setAttribute('refY', '3.5');
+                endMk.setAttribute('markerHeight', '7');
+                const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                poly.setAttribute('points', '0 0, 8 3.5, 0 7');
+                poly.setAttribute('fill', strokeCol);
+                endMk.appendChild(poly);
+            } else if (edgeType === 'open') {
+                endMk.setAttribute('refX', '9'); endMk.setAttribute('refY', '5');
+                const pl = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+                pl.setAttribute('points', '1,1 9,5 1,9');
+                pl.setAttribute('fill', 'none');
+                pl.setAttribute('stroke', strokeCol);
+                pl.setAttribute('stroke-width', '1.8');
+                endMk.appendChild(pl);
+            } else if (edgeType === 'diamond') {
+                endMk.setAttribute('refX', '5'); endMk.setAttribute('refY', '5');
+                const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                poly.setAttribute('points', '5,1 9,5 5,9 1,5');
+                poly.setAttribute('fill', strokeCol);
+                endMk.appendChild(poly);
+            } else if (edgeType === 'circle') {
+                endMk.setAttribute('refX', '8'); endMk.setAttribute('refY', '5');
+                const circ = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circ.setAttribute('cx', '5'); circ.setAttribute('cy', '5'); circ.setAttribute('r', '4');
+                circ.setAttribute('fill', strokeCol);
+                endMk.appendChild(circ);
+            }
+            svgDefs.appendChild(endMk);
+            endMarkerUrl = `url(#${mkId}_end)`;
+
+            // start marker for bidirectional
+            if (edgeType === 'bidirectional') {
+                const startMk = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+                startMk.setAttribute('id', mkId + '_start');
+                startMk.setAttribute('markerWidth', '8'); startMk.setAttribute('markerHeight', '7');
+                startMk.setAttribute('refX', '1'); startMk.setAttribute('refY', '3.5');
+                startMk.setAttribute('orient', 'auto-start-reverse');
+                const poly2 = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                poly2.setAttribute('points', '0 0, 8 3.5, 0 7');
+                poly2.setAttribute('fill', strokeCol);
+                startMk.appendChild(poly2);
+                svgDefs.appendChild(startMk);
+                startMarkerUrl = `url(#${mkId}_start)`;
+            }
+        }
 
         const path = document.createElementNS('http://www.w3.org/2000/svg','path');
         path.setAttribute('d', d);
         path.setAttribute('fill', 'none');
-        path.setAttribute('stroke', col);
-        path.setAttribute('stroke-width', sel ? 2.5 : 1.8);
-        path.setAttribute('marker-end', sel ? 'url(#arrowhead-sel)' : 'url(#arrowhead)');
-        path.setAttribute('stroke-dasharray', sel ? 'none' : '0');
+        path.setAttribute('stroke', strokeCol);
+        path.setAttribute('stroke-width', strokeW);
+        path.setAttribute('stroke-dasharray', dashArr);
+        if (endMarkerUrl !== 'none')   path.setAttribute('marker-end',   endMarkerUrl);
+        if (startMarkerUrl !== 'none') path.setAttribute('marker-start', startMarkerUrl);
+        if (isSel) path.setAttribute('filter', 'drop-shadow(0 0 3px rgba(0,123,255,0.5))');
         path.style.cursor = 'pointer';
-        path.addEventListener('click', () => deleteEdge(edge.id));
+        path.style.pointerEvents = 'auto';
+
+        // hit area (invisible wide stroke)
+        const hitPath = document.createElementNS('http://www.w3.org/2000/svg','path');
+        hitPath.setAttribute('d', d);
+        hitPath.setAttribute('fill', 'none');
+        hitPath.setAttribute('stroke', 'transparent');
+        hitPath.setAttribute('stroke-width', Math.max(strokeW + 8, 14));
+        hitPath.style.cursor = 'pointer';
+        hitPath.style.pointerEvents = 'auto';
+        hitPath.addEventListener('click', e => { e.stopPropagation(); selectEdge(edge.id); });
+        layer.appendChild(hitPath);
         layer.appendChild(path);
+
+        // Edge label
+        if (edge.label && edge.label.trim()) {
+            const labelOffsetX = edge.labelOffsetX || 0;
+            const labelOffsetY = edge.labelOffsetY !== undefined ? edge.labelOffsetY : -34;
+            const lx = (a.x + b.x) / 2 + labelOffsetX, ly = (a.y + b.y) / 2 + labelOffsetY;
+            const labelFontSize = edge.labelFontSize || 11;
+            const labelFontFamily = edge.labelFontFamily || 'Roboto';
+            const labelFontColor = edge.labelFontColor || strokeCol;
+            
+            const text = document.createElementNS('http://www.w3.org/2000/svg','text');
+            text.setAttribute('x', lx); text.setAttribute('y', ly);
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('font-size', labelFontSize);
+            text.setAttribute('font-family', labelFontFamily + ',sans-serif');
+            text.setAttribute('fill', labelFontColor);
+            if (edge.labelFontBold) text.setAttribute('font-weight', '700');
+            if (edge.labelFontItalic) text.setAttribute('font-style', 'italic');
+            if (edge.labelFontUnderline) text.setAttribute('text-decoration', 'underline');
+            
+            const tw = edge.label.length * (labelFontSize * 0.6) + 10;
+            const bg = document.createElementNS('http://www.w3.org/2000/svg','rect');
+            bg.setAttribute('x', lx - tw/2); bg.setAttribute('y', ly - labelFontSize - 6);
+            bg.setAttribute('width', tw); bg.setAttribute('height', labelFontSize + 10);
+            bg.setAttribute('rx', 4);
+            bg.setAttribute('fill', 'transparent');
+            bg.setAttribute('fill-opacity', '0');
+            
+            text.textContent = edge.label;
+            text.style.cursor = 'grab';
+            text.style.pointerEvents = 'auto';
+            bg.style.cursor = 'grab';
+            bg.style.pointerEvents = 'auto';
+            
+            // Make label draggable
+            text.addEventListener('mousedown', e => {
+                e.stopPropagation();
+                selectEdge(edge.id);
+                const startX = e.clientX, startY = e.clientY;
+                const origOffsetX = edge.labelOffsetX || 0;
+                const origOffsetY = edge.labelOffsetY !== undefined ? edge.labelOffsetY : -34;
+                
+                function onMove(ev) {
+                    const dx = (ev.clientX - startX) / transform.scale;
+                    const dy = (ev.clientY - startY) / transform.scale;
+                    edge.labelOffsetX = origOffsetX + dx;
+                    edge.labelOffsetY = origOffsetY + dy;
+                    document.getElementById('es-label-offset-x').value = edge.labelOffsetX;
+                    document.getElementById('es-label-offset-y').value = edge.labelOffsetY;
+                    redrawEdges();
+                }
+                function onUp() {
+                    window.removeEventListener('mousemove', onMove);
+                    window.removeEventListener('mouseup', onUp);
+                    saveState();
+                }
+                window.addEventListener('mousemove', onMove);
+                window.addEventListener('mouseup', onUp);
+            });
+            bg.addEventListener('mousedown', e => {
+                text.dispatchEvent(new MouseEvent('mousedown', {clientX: e.clientX, clientY: e.clientY, bubbles: true}));
+            });
+            
+            layer.appendChild(bg);
+            layer.appendChild(text);
+        }
     });
-    // update arrowhead color
-    document.querySelectorAll('.edge-arrow').forEach(p => p.style.fill = edgeCol);
-    document.querySelectorAll('.edge-arrow.selected').forEach(p => p.style.fill = selCol);
 }
 
 function addEdge(fromId, toId) {
     const map = currentMapData();
     // prevent duplicates
     if (map.edges.find(e => (e.from===fromId&&e.to===toId)||(e.from===toId&&e.to===fromId))) return;
-    map.edges.push({ id: 'e_'+Date.now(), from: fromId, to: toId });
+    map.edges.push({
+        id: 'e_'+Date.now(), from: fromId, to: toId,
+        type: 'arrow', dash: 'solid', thickness: '2', color: '', label: '',
+        // Attachment points
+        fromAttach: 'auto', toAttach: 'auto',
+        // Label styling
+        labelFontSize: 11, labelFontFamily: 'Roboto', labelFontColor: '', labelFontBold: false, labelFontItalic: false, labelFontUnderline: false,
+        labelOffsetX: 0, labelOffsetY: -34
+    });
     saveState();
     redrawEdges();
 }
@@ -910,6 +1613,86 @@ function deleteEdge(edgeId) {
     saveState();
     redrawEdges();
     renderSidebar();
+}
+
+// ─────────────────────────────────────────────
+//  EDGE SELECTION & EDITING
+// ─────────────────────────────────────────────
+function selectEdge(edgeId) {
+    selectedNodeId = null;
+    selectedEdgeId = edgeId;
+    document.querySelectorAll('.node').forEach(el => el.classList.remove('selected'));
+    document.getElementById('sidebar').classList.add('hidden');
+    redrawEdges();
+    renderEdgeSidebar();
+}
+
+function updateEdge(field, value) {
+    if (!selectedEdgeId) return;
+    const edge = currentMapData().edges.find(e => e.id === selectedEdgeId);
+    if (!edge) return;
+    edge[field] = value;
+    saveState();
+    redrawEdges();
+    renderEdgeSidebar();
+}
+
+function deleteSelectedEdge() {
+    if (!selectedEdgeId) return;
+    deleteEdge(selectedEdgeId);
+    selectedEdgeId = null;
+    document.getElementById('edge-sidebar').classList.add('hidden');
+}
+
+function renderEdgeSidebar() {
+    const es = document.getElementById('edge-sidebar');
+    const edge = currentMapData().edges.find(e => e.id === selectedEdgeId);
+    if (!edge) { es.classList.add('hidden'); return; }
+    es.classList.remove('hidden');
+
+    const edgeType      = edge.type      || 'arrow';
+    const edgeDash      = edge.dash      || 'solid';
+    const edgeThickness = edge.thickness || '2';
+    const edgeColor     = edge.color     || '';
+
+    // Sync type buttons
+    document.querySelectorAll('#es-type .opt-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.val === edgeType);
+    });
+    // Sync dash buttons
+    document.querySelectorAll('#es-dash .opt-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.val === edgeDash);
+    });
+    // Sync thickness buttons
+    document.querySelectorAll('#es-thickness .opt-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.val === edgeThickness);
+    });
+    // Color swatches
+    const swatchContainer = document.getElementById('es-color');
+    swatchContainer.innerHTML = '';
+    EDGE_COLORS.forEach(c => {
+        const sw = document.createElement('div');
+        sw.className = 'color-swatch' + (edgeColor === c.value ? ' active' : '');
+        sw.title = c.name;
+        sw.style.background = c.value || (document.body.classList.contains('dark-mode') ? '#555' : '#adb5bd');
+        if (!c.value) { sw.style.border = '2px dashed #aaa'; sw.style.background = 'transparent'; }
+        sw.addEventListener('click', () => updateEdge('color', c.value));
+        swatchContainer.appendChild(sw);
+    });
+    // Label
+    // Label styling
+    document.getElementById('es-label-font-family').value = edge.labelFontFamily || 'Roboto';
+    document.getElementById('es-label-font-size').value = edge.labelFontSize || 11;
+    document.getElementById('es-label-font-color').value = edge.labelFontColor || '';
+    document.getElementById('es-label-offset-x').value = edge.labelOffsetX || 0;
+    document.getElementById('es-label-offset-y').value = edge.labelOffsetY !== undefined ? edge.labelOffsetY : -34;
+    
+    const labelBoldBtn = document.getElementById('es-label-font-bold');
+    const labelItalicBtn = document.getElementById('es-label-font-italic');
+    const labelUnderlineBtn = document.getElementById('es-label-font-underline');
+    labelBoldBtn.classList.toggle('active', edge.labelFontBold);
+    labelItalicBtn.classList.toggle('active', edge.labelFontItalic);
+    labelUnderlineBtn.classList.toggle('active', edge.labelFontUnderline);
 }
 
 // ─────────────────────────────────────────────
@@ -937,8 +1720,10 @@ function onNodeClick(e, nodeId) {
 
 function selectNode(nodeId) {
     selectedNodeId = nodeId;
+    selectedEdgeId = null;
     document.querySelectorAll('.node').forEach(el => el.classList.remove('selected'));
     if (nodeId) document.getElementById('node-'+nodeId)?.classList.add('selected');
+    document.getElementById('edge-sidebar').classList.add('hidden');
     renderSidebar();
     redrawEdges();
 }
@@ -1032,10 +1817,28 @@ wrap.addEventListener('wheel', e => {
 
 // click canvas to deselect
 wrap.addEventListener('click', e => {
+    // Check if click was on empty canvas (not on a node or edge)
     if (e.target === wrap || e.target.id === 'canvas-svg' || e.target === document.getElementById('nodes-layer')) {
         selectNode(null);
+        selectedEdgeId = null;
+        document.getElementById('edge-sidebar').classList.add('hidden');
+        redrawEdges();
     }
 });
+
+// Add SVG click handling for empty SVG background clicks to deselect
+const svg = document.getElementById('canvas-svg');
+svg.addEventListener('click', e => {
+    // Only handle clicks on the SVG itself, not on paths (which have their own handlers)
+    if (e.target === svg) {
+        selectNode(null);
+        selectedEdgeId = null;
+        document.getElementById('edge-sidebar').classList.add('hidden');
+        document.getElementById('sidebar').classList.add('hidden');
+        redrawEdges();
+        e.stopPropagation();
+    }
+}, false);
 
 // ─────────────────────────────────────────────
 //  SIDEBAR
@@ -1053,19 +1856,55 @@ function renderSidebar() {
     document.getElementById('sb-title').value = node.title;
     document.getElementById('sb-desc').value = node.desc || '';
     document.getElementById('sb-tags').value = node.tags || '';
-    document.getElementById('sb-color').value = node.color || 'blue';
+
+    // Styling fields
+    document.getElementById('sb-width').value = node.width || 150;
+    document.getElementById('sb-height').value = node.height || 60;
+    document.getElementById('sb-border-width').value = node.borderWidth || 2;
+    document.getElementById('sb-border-color').value = node.borderColor || '#007bff';
+    document.getElementById('sb-border-dash').value = node.borderDash || 'solid';
+    document.getElementById('sb-fill-color').value = node.fillColor || '';
+    document.getElementById('sb-shape').value = node.shape || 'rectangle';
+    document.getElementById('sb-font-family').value = node.fontFamily || 'Roboto';
+    document.getElementById('sb-font-size').value = node.fontSize || 13;
+    document.getElementById('sb-font-color').value = node.fontColor || '';
+    document.getElementById('sb-title-highlight').value = node.titleHighlight || '';
+    document.getElementById('sb-desc-font-family').value = node.descFontFamily || 'Roboto';
+    document.getElementById('sb-desc-font-size').value = node.descFontSize || 10;
+    document.getElementById('sb-desc-font-color').value = node.descFontColor || '';
+    document.getElementById('sb-desc-highlight').value = node.descHighlight || '';
+    
+    // Title text buttons
+    const boldBtn = document.getElementById('sb-font-bold');
+    const italicBtn = document.getElementById('sb-font-italic');
+    const underlineBtn = document.getElementById('sb-font-underline');
+    boldBtn.classList.toggle('active', node.fontBold);
+    italicBtn.classList.toggle('active', node.fontItalic);
+    underlineBtn.classList.toggle('active', node.fontUnderline);
+    
+    // Description text buttons
+    const descBoldBtn = document.getElementById('sb-desc-font-bold');
+    const descItalicBtn = document.getElementById('sb-desc-font-italic');
+    const descUnderlineBtn = document.getElementById('sb-desc-font-underline');
+    descBoldBtn.classList.toggle('active', node.descFontBold);
+    descItalicBtn.classList.toggle('active', node.descFontItalic);
+    descUnderlineBtn.classList.toggle('active', node.descFontUnderline);
 
     // links
     const ll = document.getElementById('sb-links');
     ll.innerHTML = '';
     (node.links || []).forEach((lnk, i) => {
         const label = lnk.replace(/^https?:\/\//,'').substring(0,40);
-        ll.innerHTML += `
-        <div class="link-entry">
+        const entry = document.createElement('div');
+        entry.className = 'link-entry';
+        entry.innerHTML = `
             <i class="fas fa-link" style="color:#888;font-size:10px"></i>
-            <a href="${escAttr(lnk)}" target="_blank">${escHtml(label)}</a>
+            <button class="link-entry-url" data-index="${i}" data-url="${escAttr(lnk)}"><i class="fas fa-external-link-alt" style="margin-right:4px;font-size:9px;opacity:0.5"></i>${escHtml(label)}</button>
             <button class="link-entry-del" onclick="removeLink(${i})"><i class="fas fa-times"></i></button>
-        </div>`;
+        `;
+        const urlBtn = entry.querySelector('.link-entry-url');
+        urlBtn.addEventListener('click', e => { e.preventDefault(); editLink(i, lnk); });
+        ll.appendChild(entry);
     });
 
     // files
@@ -1088,13 +1927,14 @@ function renderSidebar() {
         const otherId = edge.from===selectedNodeId ? edge.to : edge.from;
         const other = map.nodes[otherId];
         if (!other) return;
-        const c = COLORS[other.color||'blue'];
         const isDark = document.body.classList.contains('dark-mode');
-        const col = isDark ? c.dark_border : c.border;
+        let col = other.borderColor || '#007bff';  // Use custom border color or default
+        if (isDark && !other.borderColor) col = '#1e90ff';
+        const label = edge.label ? ` <em style="font-size:10px;opacity:0.7">${escHtml(edge.label)}</em>` : '';
         cl.innerHTML += `
-        <button class="conn-chip" onclick="selectNode('${otherId}')" style="color:${col};background:${col}22">
+        <button class="conn-chip" onclick="selectEdge('${edge.id}')" style="color:${col};background:${col}22">
             <i class="fas fa-circle" style="font-size:8px"></i>
-            ${escHtml(other.title)}
+            ${escHtml(other.title)}${label}
             <button class="conn-chip-del" onclick="deleteEdge('${edge.id}');event.stopPropagation()"><i class="fas fa-unlink"></i></button>
         </button>`;
     });
@@ -1103,25 +1943,9 @@ function renderSidebar() {
 function updateNode(field, value) {
     if (!selectedNodeId) return;
     currentMapData().nodes[selectedNodeId][field] = value;
-    document.getElementById('sidebar-title').textContent =
-        currentMapData().nodes[selectedNodeId].title;
     saveState();
-    // re-render just the node el
-    const node = currentMapData().nodes[selectedNodeId];
-    const isDark = document.body.classList.contains('dark-mode');
-    const c = COLORS[node.color||'blue'];
-    const border = isDark ? c.dark_border : c.border;
-    const bg = isDark ? c.dark_bg : c.bg;
-    const el = document.getElementById('node-'+selectedNodeId);
-    if (!el) return;
-    const tags = (node.tags||'').split(',').map(t=>t.trim()).filter(Boolean);
-    el.style.borderColor = border;
-    el.style.background = bg;
-    el.innerHTML = `
-        <div class="node-title" style="color:${border}">${escHtml(node.title)}</div>
-        ${node.desc?`<p class="node-desc">${escHtml(node.desc)}</p>`:''}
-        ${tags.length?`<div class="node-tags">${tags.map(t=>`<span class="node-tag" style="background:${border}22;color:${border}">${escHtml(t)}</span>`).join('')}</div>`:''}
-    `;
+    renderNodes();  // Full re-render to apply all styling
+    renderSidebar(); // Refresh sidebar values
     redrawEdges();
 }
 
@@ -1144,6 +1968,38 @@ function removeLink(idx) {
     saveState(); renderSidebar();
 }
 
+function editLink(idx, url) {
+    const modal = document.getElementById('modal');
+    const titleEl = document.getElementById('modal-title');
+    titleEl.value = url;
+    titleEl.placeholder = 'Enter link URL';
+    modal.querySelector('.modal h3').textContent = 'Edit Link';
+    
+    // Clear previous button handlers by cloning
+    const actions = modal.querySelector('.modal-actions');
+    const newActions = actions.cloneNode(true);
+    actions.parentNode.replaceChild(newActions, actions);
+    
+    const confirmBtn = modal.querySelector('.modal-btn.confirm');
+    confirmBtn.textContent = 'Save';
+    confirmBtn.onclick = () => {
+        let newUrl = titleEl.value.trim();
+        if (!newUrl) return;
+        if (!/^https?:\/\//i.test(newUrl)) newUrl = 'https://' + newUrl;
+        currentMapData().nodes[selectedNodeId].links[idx] = newUrl;
+        titleEl.value = '';
+        closeModal();
+        saveState();
+        renderSidebar();
+    };
+    
+    const cancelBtn = modal.querySelector('.modal-btn.cancel');
+    cancelBtn.onclick = () => { titleEl.value = ''; closeModal(); };
+    
+    modal.classList.add('open');
+    setTimeout(() => titleEl.focus(), 50);
+}
+
 function attachFiles(event) {
     const node = currentMapData().nodes[selectedNodeId];
     if (!node.files) node.files = [];
@@ -1161,8 +2017,22 @@ function removeFile(idx) {
 //  ADD / DELETE NODES
 // ─────────────────────────────────────────────
 function openNewNodeModal() {
-    document.getElementById('modal').classList.add('open');
-    setTimeout(() => document.getElementById('modal-title').focus(), 50);
+    const modal = document.getElementById('modal');
+    const titleEl = document.getElementById('modal-title');
+    const confirmBtn = modal.querySelector('.modal-btn.confirm');
+    const cancelBtn = modal.querySelector('.modal-btn.cancel');
+    
+    modal.querySelector('.modal h3').textContent = 'New Concept';
+    titleEl.value = '';
+    titleEl.placeholder = 'Concept name';
+    confirmBtn.textContent = 'Create';
+    
+    // Restore default onclick handlers
+    confirmBtn.onclick = confirmNewNode;
+    cancelBtn.onclick = () => { titleEl.value = ''; closeModal(); };
+    
+    modal.classList.add('open');
+    setTimeout(() => titleEl.focus(), 50);
 }
 function closeModal() { document.getElementById('modal').classList.remove('open'); }
 
@@ -1176,8 +2046,16 @@ function confirmNewNode() {
     const cy = (wrap.clientHeight / 2 - transform.y) / transform.scale;
     const jitter = () => (Math.random() - 0.5) * 120;
     currentMapData().nodes[id] = {
-        id, title, desc: '', tags: '', color: 'blue',
-        x: cx + jitter(), y: cy + jitter(), links: [], files: []
+        id, title, desc: '', tags: '', 
+        x: cx + jitter(), y: cy + jitter(), links: [], files: [],
+        // Styling properties
+        width: 150, height: 60,  // size
+        borderWidth: 2, borderDash: 'solid', borderColor: '', fillColor: '',  // border & fill
+        shape: 'rectangle',  // shape customization
+        fontSize: 13, fontFamily: 'Roboto', fontColor: '', fontBold: false, fontItalic: false, fontUnderline: false,  // title font
+        titleHighlight: '',  // title highlighting
+        descFontSize: 10, descFontFamily: 'Roboto', descFontColor: '', descFontBold: false, descFontItalic: false, descFontUnderline: false,  // description font
+        descHighlight: ''  // description highlighting
     };
     document.getElementById('modal-title').value = '';
     closeModal();
@@ -1195,6 +2073,77 @@ function deleteSelectedNode() {
     saveState();
     renderAll();
     document.getElementById('sidebar').classList.add('hidden');
+}
+
+// ─────────────────────────────────────────────
+//  COPY / PASTE
+// ─────────────────────────────────────────────
+function copyNode(nodeId) {
+    const node = currentMapData().nodes[nodeId];
+    if (!node) return;
+    clipboard = {
+        type: 'node',
+        data: JSON.parse(JSON.stringify(node))  // deep copy
+    };
+}
+
+function pasteNode() {
+    if (!clipboard.data || clipboard.type !== 'node') return;
+    
+    const wrap = document.getElementById('canvas-wrap');
+    const newId = 'n_' + Date.now();
+    const offset = 80;  // offset from original
+    
+    // Create new node with copied properties
+    const newNode = JSON.parse(JSON.stringify(clipboard.data));
+    newNode.id = newId;
+    newNode.x += offset;
+    newNode.y += offset;
+    
+    currentMapData().nodes[newId] = newNode;
+    saveState();
+    renderAll();
+    selectNode(newId);
+}
+
+function copyEdge(edgeId) {
+    const edge = currentMapData().edges.find(e => e.id === edgeId);
+    if (!edge) return;
+    clipboard = {
+        type: 'edge',
+        data: JSON.parse(JSON.stringify(edge))  // deep copy
+    };
+}
+
+function pasteEdge() {
+    if (!clipboard.data || clipboard.type !== 'edge') return;
+    if (!selectedNodeId) return;
+    
+    const edge = clipboard.data;
+    
+    // Try to paste: if we have source and target nodes, create new edge
+    // For simplicity, paste from the clipboard source to the currently selected node
+    const map = currentMapData();
+    const sourceNode = map.nodes[edge.from];
+    
+    if (sourceNode) {
+        // Create new edge from copied source to currently selected node
+        const newEdge = JSON.parse(JSON.stringify(edge));
+        newEdge.id = 'e_' + Date.now();
+        newEdge.from = edge.from;
+        newEdge.to = selectedNodeId;
+        map.edges.push(newEdge);
+    } else {
+        // If source doesn't exist, just create edge between selected node and itself (or skip)
+        const newEdge = JSON.parse(JSON.stringify(edge));
+        newEdge.id = 'e_' + Date.now();
+        newEdge.from = selectedNodeId;
+        newEdge.to = selectedNodeId;
+        map.edges.push(newEdge);
+    }
+    
+    saveState();
+    redrawEdges();
 }
 
 // ─────────────────────────────────────────────
@@ -1286,6 +2235,23 @@ themeToggle.addEventListener('click', () => {
 // ─────────────────────────────────────────────
 document.addEventListener('keydown', e => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    
+    // Copy (Ctrl+C or Cmd+C)
+    if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+        e.preventDefault();
+        if (selectedNodeId) copyNode(selectedNodeId);
+        else if (selectedEdgeId) copyEdge(selectedEdgeId);
+        return;
+    }
+    
+    // Paste (Ctrl+V or Cmd+V)
+    if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+        e.preventDefault();
+        if (clipboard.type === 'node') pasteNode();
+        else if (clipboard.type === 'edge' && selectedNodeId) pasteEdge();
+        return;
+    }
+    
     if (e.key === 'Delete' || e.key === 'Backspace') deleteSelectedNode();
     if (e.key === 'Escape') { setMode('select'); selectNode(null); }
     if (e.key === 'n' || e.key === 'N') openNewNodeModal();
