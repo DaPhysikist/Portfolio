@@ -792,25 +792,49 @@
         <h2><i class="fas fa-bezier-curve" style="color:var(--primary-color)"></i> Connector</h2>
 
         <div class="sidebar-section">
-            <div class="sidebar-label">Type</div>
-            <div class="type-options" id="es-type">
-                <button class="opt-btn active" data-val="arrow" onclick="updateEdge('type','arrow')">
-                    <svg width="28" height="12"><line x1="2" y1="6" x2="20" y2="6" stroke="currentColor" stroke-width="1.5"/><polyline points="14,2 22,6 14,10" fill="none" stroke="currentColor" stroke-width="1.5"/></svg> Arrow
+            <div class="sidebar-label">From (start) marker</div>
+            <div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap">
+                <button class="opt-btn active" data-field="fromType" data-val="none" onclick="updateEdge('fromType','none')" title="No marker" style="width:28px;height:28px;padding:4px">
+                    <svg width="20" height="20"><line x1="2" y1="10" x2="18" y2="10" stroke="currentColor" stroke-width="1.5"/></svg>
                 </button>
-                <button class="opt-btn" data-val="bidirectional" onclick="updateEdge('type','bidirectional')">
-                    <svg width="28" height="12"><line x1="2" y1="6" x2="26" y2="6" stroke="currentColor" stroke-width="1.5"/><polyline points="8,2 2,6 8,10" fill="none" stroke="currentColor" stroke-width="1.5"/><polyline points="20,2 26,6 20,10" fill="none" stroke="currentColor" stroke-width="1.5"/></svg> Both
+                <button class="opt-btn" data-field="fromType" data-val="arrow" onclick="updateEdge('fromType','arrow')" title="Arrow" style="width:28px;height:28px;padding:4px">
+                    <svg width="20" height="20"><polyline points="6,4 2,10 6,16" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
                 </button>
-                <button class="opt-btn" data-val="line" onclick="updateEdge('type','line')">
-                    <svg width="28" height="12"><line x1="2" y1="6" x2="26" y2="6" stroke="currentColor" stroke-width="1.5"/></svg> Line
+                <button class="opt-btn" data-field="fromType" data-val="circle" onclick="updateEdge('fromType','circle')" title="Circle" style="width:28px;height:28px;padding:4px">
+                    <svg width="20" height="20"><circle cx="4" cy="10" r="3" fill="currentColor"/></svg>
                 </button>
-                <button class="opt-btn" data-val="open" onclick="updateEdge('type','open')">
-                    <svg width="28" height="12"><line x1="2" y1="6" x2="20" y2="6" stroke="currentColor" stroke-width="1.5"/><polyline points="14,2 22,6 14,10" fill="none" stroke="currentColor" stroke-width="1.5"/></svg> Open
+                <button class="opt-btn" data-field="fromType" data-val="square" onclick="updateEdge('fromType','square')" title="Square" style="width:28px;height:28px;padding:4px">
+                    <svg width="20" height="20"><rect x="1" y="7" width="6" height="6" fill="currentColor"/></svg>
                 </button>
-                <button class="opt-btn" data-val="diamond" onclick="updateEdge('type','diamond')">
-                    <svg width="36" height="12"><line x1="2" y1="6" x2="24" y2="6" stroke="currentColor" stroke-width="1.5"/><polygon points="28,3 34,6 28,9 22,6" fill="currentColor"/></svg> Diamond
+                <button class="opt-btn" data-field="fromType" data-val="diamond" onclick="updateEdge('fromType','diamond')" title="Diamond" style="width:28px;height:28px;padding:4px">
+                    <svg width="20" height="20"><polygon points="4,10 2,7 4,4 6,7" fill="currentColor"/></svg>
                 </button>
-                <button class="opt-btn" data-val="circle" onclick="updateEdge('type','circle')">
-                    <svg width="34" height="12"><line x1="2" y1="6" x2="22" y2="6" stroke="currentColor" stroke-width="1.5"/><circle cx="28" cy="6" r="4" fill="currentColor"/></svg> Circle
+                <button class="tool-btn" id="es-from-filled" onclick="updateEdge('fromFilled', !document.getElementById('es-from-filled').classList.contains('active'))" title="Toggle filled" style="width:28px;height:28px;padding:4px">
+                    <i class="fas fa-fill-drip"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-label">To (end) marker</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <button class="opt-btn" data-field="toType" data-val="none" onclick="updateEdge('toType','none')" title="No marker" style="width:28px;height:28px;padding:4px">
+                    <svg width="20" height="20"><line x1="2" y1="10" x2="18" y2="10" stroke="currentColor" stroke-width="1.5"/></svg>
+                </button>
+                <button class="opt-btn active" data-field="toType" data-val="arrow" onclick="updateEdge('toType','arrow')" title="Arrow" style="width:28px;height:28px;padding:4px">
+                    <svg width="20" height="20"><polyline points="14,4 18,10 14,16" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+                </button>
+                <button class="opt-btn" data-field="toType" data-val="circle" onclick="updateEdge('toType','circle')" title="Circle" style="width:28px;height:28px;padding:4px">
+                    <svg width="20" height="20"><circle cx="16" cy="10" r="3" fill="currentColor"/></svg>
+                </button>
+                <button class="opt-btn" data-field="toType" data-val="square" onclick="updateEdge('toType','square')" title="Square" style="width:28px;height:28px;padding:4px">
+                    <svg width="20" height="20"><rect x="13" y="7" width="6" height="6" fill="currentColor"/></svg>
+                </button>
+                <button class="opt-btn" data-field="toType" data-val="diamond" onclick="updateEdge('toType','diamond')" title="Diamond" style="width:28px;height:28px;padding:4px">
+                    <svg width="20" height="20"><polygon points="16,10 18,13 16,16 14,13" fill="currentColor"/></svg>
+                </button>
+                <button class="tool-btn" id="es-to-filled" onclick="updateEdge('toFilled', !document.getElementById('es-to-filled').classList.contains('active'))" title="Toggle filled" style="width:28px;height:28px;padding:4px">
+                    <i class="fas fa-fill-drip"></i>
                 </button>
             </div>
         </div>
@@ -1428,7 +1452,10 @@ function redrawEdges() {
         const strokeCol = isSel ? selCol : edgeColor;
         const strokeW   = parseFloat(edge.thickness || '2') * (isSel ? 1.2 : 1);
         const dashArr   = DASH_MAP[edge.dash || 'solid'] || 'none';
-        const edgeType  = edge.type || 'arrow';
+        const fromType  = edge.fromType || 'none';
+        const toType    = edge.toType || 'arrow';
+        const fromFilled = edge.fromFilled !== false;
+        const toFilled   = edge.toFilled !== false;
 
         // Curved path
         const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2 - 30;
@@ -1443,59 +1470,107 @@ function redrawEdges() {
         let endMarkerUrl = 'none';
         let startMarkerUrl = 'none';
 
-        if (edgeType !== 'line') {
-            // end marker
+        // Create start marker (fromType)
+        if (fromType !== 'none') {
+            const startMk = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+            startMk.setAttribute('id', mkId + '_start');
+            startMk.setAttribute('orient', 'auto');
+
+            if (fromType === 'arrow') {
+                startMk.setAttribute('markerWidth', '8');
+                startMk.setAttribute('markerHeight', '7');
+                startMk.setAttribute('refX', '-2');
+                startMk.setAttribute('refY', '3.5');
+                const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                poly.setAttribute('points', '8 0, 0 3.5, 8 7');
+                if (fromFilled) poly.setAttribute('fill', strokeCol);
+                else { poly.setAttribute('fill', 'none'); poly.setAttribute('stroke', strokeCol); poly.setAttribute('stroke-width', '1'); }
+                startMk.appendChild(poly);
+            } else if (fromType === 'circle') {
+                startMk.setAttribute('markerWidth', '12');
+                startMk.setAttribute('markerHeight', '10');
+                startMk.setAttribute('refX', '-4');
+                startMk.setAttribute('refY', '5');
+                const circ = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circ.setAttribute('cx', '2'); circ.setAttribute('cy', '5'); circ.setAttribute('r', '3');
+                if (fromFilled) circ.setAttribute('fill', strokeCol);
+                else { circ.setAttribute('fill', 'none'); circ.setAttribute('stroke', strokeCol); circ.setAttribute('stroke-width', '1'); }
+                startMk.appendChild(circ);
+            } else if (fromType === 'square') {
+                startMk.setAttribute('markerWidth', '12');
+                startMk.setAttribute('markerHeight', '10');
+                startMk.setAttribute('refX', '-4');
+                startMk.setAttribute('refY', '5');
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('x', '-1'); rect.setAttribute('y', '2'); rect.setAttribute('width', '4'); rect.setAttribute('height', '6');
+                if (fromFilled) rect.setAttribute('fill', strokeCol);
+                else { rect.setAttribute('fill', 'none'); rect.setAttribute('stroke', strokeCol); rect.setAttribute('stroke-width', '1'); }
+                startMk.appendChild(rect);
+            } else if (fromType === 'diamond') {
+                startMk.setAttribute('markerWidth', '12');
+                startMk.setAttribute('markerHeight', '10');
+                startMk.setAttribute('refX', '-4');
+                startMk.setAttribute('refY', '5');
+                const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                poly.setAttribute('points', '4 0, 0 5, 4 10, 2 5');
+                if (fromFilled) poly.setAttribute('fill', strokeCol);
+                else { poly.setAttribute('fill', 'none'); poly.setAttribute('stroke', strokeCol); poly.setAttribute('stroke-width', '1'); }
+                startMk.appendChild(poly);
+            }
+            svgDefs.appendChild(startMk);
+            startMarkerUrl = `url(#${mkId}_start)`;
+        }
+
+        // Create end marker (toType)
+        if (toType !== 'none') {
             const endMk = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
             endMk.setAttribute('id', mkId + '_end');
-            endMk.setAttribute('markerWidth', '10');
-            endMk.setAttribute('markerHeight', '10');
             endMk.setAttribute('orient', 'auto');
 
-            if (edgeType === 'arrow' || edgeType === 'bidirectional') {
-                endMk.setAttribute('refX', '8'); endMk.setAttribute('refY', '3.5');
+            if (toType === 'arrow') {
+                endMk.setAttribute('markerWidth', '10');
+                endMk.setAttribute('markerHeight', '10');
+                endMk.setAttribute('refX', '8');
+                endMk.setAttribute('refY', '3.5');
                 endMk.setAttribute('markerHeight', '7');
                 const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
                 poly.setAttribute('points', '0 0, 8 3.5, 0 7');
-                poly.setAttribute('fill', strokeCol);
+                if (toFilled) poly.setAttribute('fill', strokeCol);
+                else { poly.setAttribute('fill', 'none'); poly.setAttribute('stroke', strokeCol); poly.setAttribute('stroke-width', '1'); }
                 endMk.appendChild(poly);
-            } else if (edgeType === 'open') {
-                endMk.setAttribute('refX', '9'); endMk.setAttribute('refY', '5');
-                const pl = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-                pl.setAttribute('points', '1,1 9,5 1,9');
-                pl.setAttribute('fill', 'none');
-                pl.setAttribute('stroke', strokeCol);
-                pl.setAttribute('stroke-width', '1.8');
-                endMk.appendChild(pl);
-            } else if (edgeType === 'diamond') {
-                endMk.setAttribute('refX', '5'); endMk.setAttribute('refY', '5');
-                const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-                poly.setAttribute('points', '5,1 9,5 5,9 1,5');
-                poly.setAttribute('fill', strokeCol);
-                endMk.appendChild(poly);
-            } else if (edgeType === 'circle') {
-                endMk.setAttribute('refX', '8'); endMk.setAttribute('refY', '5');
+            } else if (toType === 'circle') {
+                endMk.setAttribute('markerWidth', '12');
+                endMk.setAttribute('markerHeight', '10');
+                endMk.setAttribute('refX', '10');
+                endMk.setAttribute('refY', '5');
                 const circ = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                circ.setAttribute('cx', '5'); circ.setAttribute('cy', '5'); circ.setAttribute('r', '4');
-                circ.setAttribute('fill', strokeCol);
+                circ.setAttribute('cx', '6'); circ.setAttribute('cy', '5'); circ.setAttribute('r', '3');
+                if (toFilled) circ.setAttribute('fill', strokeCol);
+                else { circ.setAttribute('fill', 'none'); circ.setAttribute('stroke', strokeCol); circ.setAttribute('stroke-width', '1'); }
                 endMk.appendChild(circ);
+            } else if (toType === 'square') {
+                endMk.setAttribute('markerWidth', '12');
+                endMk.setAttribute('markerHeight', '10');
+                endMk.setAttribute('refX', '13');
+                endMk.setAttribute('refY', '5');
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('x', '7'); rect.setAttribute('y', '2'); rect.setAttribute('width', '4'); rect.setAttribute('height', '6');
+                if (toFilled) rect.setAttribute('fill', strokeCol);
+                else { rect.setAttribute('fill', 'none'); rect.setAttribute('stroke', strokeCol); rect.setAttribute('stroke-width', '1'); }
+                endMk.appendChild(rect);
+            } else if (toType === 'diamond') {
+                endMk.setAttribute('markerWidth', '12');
+                endMk.setAttribute('markerHeight', '10');
+                endMk.setAttribute('refX', '12');
+                endMk.setAttribute('refY', '5');
+                const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                poly.setAttribute('points', '8 0, 12 5, 8 10, 10 5');
+                if (toFilled) poly.setAttribute('fill', strokeCol);
+                else { poly.setAttribute('fill', 'none'); poly.setAttribute('stroke', strokeCol); poly.setAttribute('stroke-width', '1'); }
+                endMk.appendChild(poly);
             }
             svgDefs.appendChild(endMk);
             endMarkerUrl = `url(#${mkId}_end)`;
-
-            // start marker for bidirectional
-            if (edgeType === 'bidirectional') {
-                const startMk = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
-                startMk.setAttribute('id', mkId + '_start');
-                startMk.setAttribute('markerWidth', '8'); startMk.setAttribute('markerHeight', '7');
-                startMk.setAttribute('refX', '1'); startMk.setAttribute('refY', '3.5');
-                startMk.setAttribute('orient', 'auto-start-reverse');
-                const poly2 = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-                poly2.setAttribute('points', '0 0, 8 3.5, 0 7');
-                poly2.setAttribute('fill', strokeCol);
-                startMk.appendChild(poly2);
-                svgDefs.appendChild(startMk);
-                startMarkerUrl = `url(#${mkId}_start)`;
-            }
         }
 
         const path = document.createElementNS('http://www.w3.org/2000/svg','path');
@@ -1596,7 +1671,10 @@ function addEdge(fromId, toId) {
     if (map.edges.find(e => (e.from===fromId&&e.to===toId)||(e.from===toId&&e.to===fromId))) return;
     map.edges.push({
         id: 'e_'+Date.now(), from: fromId, to: toId,
-        type: 'arrow', dash: 'solid', thickness: '2', color: '', label: '',
+        // Marker types at each end
+        fromType: 'none', toType: 'arrow', fromFilled: true, toFilled: true,
+        // Line styling
+        dash: 'solid', thickness: '2', color: '', label: '',
         // Attachment points
         fromAttach: 'auto', toAttach: 'auto',
         // Label styling
@@ -1650,15 +1728,29 @@ function renderEdgeSidebar() {
     if (!edge) { es.classList.add('hidden'); return; }
     es.classList.remove('hidden');
 
-    const edgeType      = edge.type      || 'arrow';
-    const edgeDash      = edge.dash      || 'solid';
+    const fromType   = edge.fromType   || 'none';
+    const toType     = edge.toType     || 'arrow';
+    const fromFilled = edge.fromFilled !== false;
+    const toFilled   = edge.toFilled !== false;
+    const edgeDash   = edge.dash       || 'solid';
     const edgeThickness = edge.thickness || '2';
-    const edgeColor     = edge.color     || '';
+    const edgeColor  = edge.color      || '';
 
-    // Sync type buttons
-    document.querySelectorAll('#es-type .opt-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.val === edgeType);
+    // Sync from marker type buttons
+    document.querySelectorAll('[data-field="fromType"]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.val === fromType);
     });
+    // Sync to marker type buttons
+    document.querySelectorAll('[data-field="toType"]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.val === toType);
+    });
+
+    // Sync filled toggles
+    const fromFilledBtn = document.getElementById('es-from-filled');
+    const toFilledBtn = document.getElementById('es-to-filled');
+    fromFilledBtn.classList.toggle('active', fromFilled);
+    toFilledBtn.classList.toggle('active', toFilled);
+
     // Sync dash buttons
     document.querySelectorAll('#es-dash .opt-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.val === edgeDash);
@@ -1679,7 +1771,8 @@ function renderEdgeSidebar() {
         sw.addEventListener('click', () => updateEdge('color', c.value));
         swatchContainer.appendChild(sw);
     });
-    // Label
+    // Label text input
+    document.getElementById('es-label').value = edge.label || '';
     // Label styling
     document.getElementById('es-label-font-family').value = edge.labelFontFamily || 'Roboto';
     document.getElementById('es-label-font-size').value = edge.labelFontSize || 11;

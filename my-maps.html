@@ -135,18 +135,19 @@
             top: 0; left: 0;
             width: 100%; height: 100%;
             pointer-events: none;
+            z-index: 1;
         }
         #nodes-layer {
             position: absolute;
             top: 0; left: 0;
             width: 100%; height: 100%;
             transform-origin: 0 0;
+            z-index: 2;
         }
 
         /* ── Node ── */
         .node {
             position: absolute;
-            border: 2px solid var(--primary-color);
             border-radius: 12px;
             padding: 10px 14px;
             min-width: 130px;
@@ -156,8 +157,8 @@
             transition: box-shadow 0.15s, transform 0.1s;
             z-index: 2;
         }
-        .node:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
-        .node.selected { box-shadow: 0 0 0 3px rgba(0,123,255,0.3); }
+        .node:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.15) !important; }
+        .node.selected { box-shadow: 0 0 0 3px rgba(0,123,255,0.3) !important; }
         .node-title { font-weight: 700; font-size: 13px; margin: 0 0 2px; }
         .node-desc {
             font-size: 11px; color: #888; margin: 0;
@@ -166,7 +167,6 @@
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
         }
-        .dark-mode .node-desc { color: #aaa; }
         .node-tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 5px; }
         .node-tag { font-size: 10px; padding: 1px 6px; border-radius: 10px; }
 
@@ -179,6 +179,7 @@
             overflow-y: auto;
             display: flex;
             flex-direction: column;
+            z-index: 10;
         }
         .info-panel.hidden { display: none; }
         .info-header {
@@ -301,7 +302,6 @@
 </head>
 <body>
 
-<!-- ── HEADER ── -->
 <header class="main-header">
     <a href="/" class="header-icon-link">
         <img src="/android-chrome-512x512.png" alt="Pranav Mehta Logo" class="header-icon">
@@ -318,49 +318,16 @@
     </nav>
 </header>
 
-<!-- ── APP BODY ── -->
 <div class="app-body">
 
-    <!-- Map list sidebar -->
     <aside class="map-sidebar" id="map-sidebar">
         <div class="sidebar-title">Maps</div>
         <div id="map-tabs"></div>
     </aside>
 
-    <!-- Canvas -->
     <div class="canvas-wrap" id="canvas-wrap">
         <svg id="canvas-svg" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-                <marker id="arrowhead" markerWidth="8" markerHeight="7"
-                        refX="7" refY="3.5" orient="auto">
-                    <polygon id="ah-poly" points="0 0, 8 3.5, 0 7"/>
-                </marker>
-                <marker id="arrowhead-sel" markerWidth="8" markerHeight="7"
-                        refX="7" refY="3.5" orient="auto">
-                    <polygon points="0 0, 8 3.5, 0 7" style="fill:#007bff"/>
-                </marker>
-                <!-- Open arrow markers -->
-                <marker id="open-arrow" markerWidth="8" markerHeight="7"
-                        refX="7" refY="3.5" orient="auto">
-                    <polyline id="oa-poly" points="0 0, 8 3.5, 0 7" style="fill:none;stroke-width:1"/>
-                </marker>
-                <marker id="open-arrow-sel" markerWidth="8" markerHeight="7"
-                        refX="7" refY="3.5" orient="auto">
-                    <polyline points="0 0, 8 3.5, 0 7" style="fill:none;stroke:#007bff;stroke-width:1"/>
-                </marker>
-                <!-- Diamond marker default -->
-                <marker id="diamond-default" markerWidth="8" markerHeight="8"
-                        refX="4" refY="4" orient="auto">
-                    <polygon id="dm-poly" points="4 0, 8 4, 4 8, 0 4"/>
-                </marker>
-                <!-- Circle marker default -->
-                <marker id="circle-default" markerWidth="8" markerHeight="8"
-                        refX="4" refY="4" orient="auto">
-                    <circle id="ci-circle" cx="4" cy="4" r="2.5"/>
-                </marker>
-                <!-- Dynamic color markers -->
-                <g id="color-markers"></g>
-            </defs>
+            <defs id="svg-defs"></defs>
             <g id="edges-layer"></g>
         </svg>
         <div id="nodes-layer"></div>
@@ -376,7 +343,6 @@
         </div>
     </div>
 
-    <!-- Info panel (shown when a node is selected) -->
     <aside class="info-panel hidden" id="info-panel">
         <div class="info-header">
             <h2 id="info-title"></h2>
@@ -417,24 +383,6 @@ const COLORS = {
     gray:   { border: '#6c757d', bg: '#f3f4f5', dark_border: '#9aa0a6', dark_bg: '#252525' },
 };
 
-// ─────────────────────────────────────────────
-//  EDGE COLORS AND STYLES (must match editor)
-// ─────────────────────────────────────────────
-const EDGE_COLORS = [
-    { name: 'Default', value: '' },
-    { name: 'Blue',    value: '#007bff' },
-    { name: 'Green',   value: '#28a745' },
-    { name: 'Red',     value: '#e74c3c' },
-    { name: 'Orange',  value: '#fd7e14' },
-    { name: 'Purple',  value: '#6f42c1' },
-    { name: 'Teal',    value: '#20c997' },
-    { name: 'Gray',    value: '#6c757d' },
-    { name: 'Black',   value: '#222222' },
-    { name: 'Pink',    value: '#e83e8c' },
-    { name: 'Yellow',  value: '#ffc107' },
-    { name: 'Cyan',    value: '#17a2b8' },
-];
-
 const DASH_MAP = {
     solid:    'none',
     dotted:   '2,4',
@@ -446,7 +394,7 @@ const DASH_MAP = {
 // ─────────────────────────────────────────────
 //  STATE
 // ─────────────────────────────────────────────
-let mapData = null;        // full map-data.json contents
+let mapData = null;
 let currentMapId = null;
 let selectedNodeId = null;
 let transform = { x: 0, y: 0, scale: 1 };
@@ -527,107 +475,101 @@ function renderNodes() {
     if (!map) return;
 
     Object.values(map.nodes).forEach(node => {
-        // Use custom border/fill colors if set, otherwise use defaults
-        let borderColor = node.borderColor || '';
-        let fillColor = node.fillColor || '';
+        let defaultBorder = '#007bff';
+        let defaultBg = '#e8f4ff';
+        if (isDark) {
+            defaultBorder = '#1e90ff';
+            defaultBg = '#1a2d40';
+        }
         
-        // If no custom colors, use COLORS palette (for backward compatibility)
-        if (!borderColor) {
-            const c = COLORS[node.color || 'blue'];
-            borderColor = isDark ? c.dark_border : c.border;
+        let borderColor = node.borderColor;
+        let bgColor = node.fillColor;
+        
+        if (!borderColor && node.color) {
+            const c = COLORS[node.color];
+            if (c) borderColor = isDark ? c.dark_border : c.border;
         }
-        if (!fillColor) {
-            const c = COLORS[node.color || 'blue'];
-            fillColor = isDark ? c.dark_bg : c.bg;
+        if (!bgColor && node.color) {
+            const c = COLORS[node.color];
+            if (c) bgColor = isDark ? c.dark_bg : c.bg;
         }
+        
+        borderColor = borderColor || defaultBorder;
+        bgColor = bgColor || defaultBg;
 
-        const width = node.width || 150;
-        const height = node.height || 60;
         const borderWidth = node.borderWidth || 2;
-        const borderDash = node.borderDash || 'solid';
+        const borderStyle = node.borderDash || 'solid';
         const shape = node.shape || 'rectangle';
         const fontSize = node.fontSize || 13;
         const fontFamily = node.fontFamily || 'Roboto';
         const fontColor = node.fontColor || borderColor;
-        const fontBold = node.fontBold ? 'bold' : 'normal';
-        const fontItalic = node.fontItalic ? 'italic' : 'normal';
-        const fontUnderline = node.fontUnderline ? 'underline' : 'none';
-        const titleHighlight = node.titleHighlight || '';
-
         const descFontSize = node.descFontSize || 10;
         const descFontFamily = node.descFontFamily || 'Roboto';
         const descFontColor = node.descFontColor || fontColor;
-        const descFontBold = node.descFontBold ? 'bold' : 'normal';
-        const descFontItalic = node.descFontItalic ? 'italic' : 'normal';
-        const descFontUnderline = node.descFontUnderline ? 'underline' : 'none';
-        const descHighlight = node.descHighlight || '';
-
-        const tags = (node.tags || '').split(',').map(t => t.trim()).filter(Boolean);
 
         const el = document.createElement('div');
         el.className = 'node' + (node.id === selectedNodeId ? ' selected' : '');
         el.id = 'node-' + node.id;
         el.style.left = node.x + 'px';
         el.style.top = node.y + 'px';
-        el.style.width = width + 'px';
-        el.style.height = height + 'px';
+        el.style.width = (node.width || 150) + 'px';
+        el.style.minHeight = (node.height || 60) + 'px';
         el.style.borderColor = borderColor;
         el.style.borderWidth = borderWidth + 'px';
-        el.style.background = fillColor;
+        if (borderStyle !== 'solid') el.style.borderStyle = borderStyle;
+        el.style.background = bgColor;
         el.style.boxShadow = `0 2px 12px ${borderColor}33`;
+        el.style.fontFamily = fontFamily;
+        el.style.fontSize = fontSize + 'px';
+        el.style.color = fontColor;
 
-        // Apply shape styling
-        if (shape === 'rounded') {
-            el.style.borderRadius = '8px';
-        } else if (shape === 'circle') {
-            el.style.borderRadius = '50%';
-        } else if (shape === 'diamond') {
+        if (shape === 'rounded') el.style.borderRadius = '8px';
+        else if (shape === 'circle') el.style.borderRadius = '50%';
+        else if (shape === 'diamond') {
             el.style.transform = 'rotate(45deg)';
+            el.style.display = 'flex';
+            el.style.alignItems = 'center';
+            el.style.justifyContent = 'center';
+            el.style.flexDirection = 'column';
         }
 
-        // Apply border dash pattern
-        const dashPatterns = {
-            solid: 'solid',
-            dotted: 'dotted',
-            dashed: 'dashed',
-            longdash: 'dashed',
-            dashdot: 'dashed'
-        };
-        el.style.borderStyle = dashPatterns[borderDash] || 'solid';
+        const tags = (node.tags || '').split(',').map(t => t.trim()).filter(Boolean);
 
-        // Build title HTML with highlighting
-        let titleHtml = node.title || 'Untitled';
-        if (titleHighlight) {
-            titleHtml = `<span style="background-color:${titleHighlight}44;padding:2px 4px;border-radius:3px;display:inline-block">${escHtml(titleHtml)}</span>`;
-        } else {
-            titleHtml = escHtml(titleHtml);
+        let titleStyle = `color:${fontColor};font-size:${fontSize}px`;
+        if (node.fontBold) titleStyle += ';font-weight:700';
+        if (node.fontItalic) titleStyle += ';font-style:italic';
+        if (node.fontUnderline) titleStyle += ';text-decoration:underline';
+
+        let titleContent = escHtml(node.title);
+        if (node.titleHighlight) {
+            // FIXED: Removed the "44" opacity code to match the editor
+            titleContent = `<span style="background-color:${node.titleHighlight};padding:2px 4px;border-radius:2px;display:inline-block">${titleContent}</span>`;
         }
 
-        // Build description HTML with highlighting
-        let descHtml = '';
-        if (node.desc) {
-            let descText = node.desc;
-            if (descHighlight) {
-                descText = `<span style="background-color:${descHighlight}44;padding:2px 4px;border-radius:3px;display:inline-block">${escHtml(descText)}</span>`;
-            } else {
-                descText = escHtml(descText);
-            }
-            descHtml = `<p class="node-desc" style="font-size:${descFontSize}px;font-family:${descFontFamily};color:${descFontColor};font-weight:${descFontBold};font-style:${descFontItalic};text-decoration:${descFontUnderline}">${descText}</p>`;
-        }
+        let descStyle = `color:${descFontColor};font-family:${descFontFamily};font-size:${descFontSize}px;${!node.desc ? 'display:none;' : ''}`;
+        if (node.descFontBold) descStyle += ';font-weight:700';
+        if (node.descFontItalic) descStyle += ';font-style:italic';
+        if (node.descFontUnderline) descStyle += ';text-decoration:underline';
 
-        // For diamond shape, we need to counter-rotate the content
-        const contentTransform = shape === 'diamond' ? 'rotate(-45deg)' : 'none';
-        const contentStyle = shape === 'diamond' ? `style="transform: rotate(-45deg);width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center"` : '';
+        let descContent = escHtml(node.desc || '');
+        if (node.desc && node.descHighlight) {
+            // FIXED: Removed the "44" opacity code to match the editor
+            descContent = `<span style="background-color:${node.descHighlight};padding:2px 4px;border-radius:2px;display:inline-block">${descContent}</span>`;
+        }
 
         el.innerHTML = `
-            <div ${contentStyle}>
-                <div class="node-title" style="color:${fontColor};font-size:${fontSize}px;font-family:${fontFamily};font-weight:${fontBold};font-style:${fontItalic};text-decoration:${fontUnderline}">${titleHtml}</div>
-                ${descHtml}
-                ${tags.length ? `<div class="node-tags">${tags.map(t =>
-                    `<span class="node-tag" style="background:${borderColor}22;color:${borderColor}">${escHtml(t)}</span>`
-                ).join('')}</div>` : ''}
-            </div>
+            <div class="node-title" data-field="title" style="${titleStyle}">${titleContent}</div>
+            <p class="node-desc" data-field="desc" style="${descStyle}">${descContent}</p>
+            ${tags.length ? `<div class="node-tags">${tags.map(t => `<span class="node-tag" style="background:${borderColor}22;color:${borderColor}">${escHtml(t)}</span>`).join('')}</div>` : ''}
         `;
+
+        if (shape === 'diamond') {
+            const titleEl = el.querySelector('[data-field="title"]');
+            const descEl = el.querySelector('[data-field="desc"]');
+            if (titleEl) titleEl.style.transform = 'rotate(-45deg)';
+            if (descEl) descEl.style.transform = 'rotate(-45deg)';
+        }
+
         el.addEventListener('click', e => { e.stopPropagation(); selectNode(node.id); });
         layer.appendChild(el);
     });
@@ -639,30 +581,37 @@ function renderNodes() {
 function nodeCenter(nodeId) {
     const el = document.getElementById('node-' + nodeId);
     if (!el) return null;
-    return {
-        x: (parseFloat(el.style.left) + el.offsetWidth  / 2) * transform.scale + transform.x,
-        y: (parseFloat(el.style.top)  + el.offsetHeight / 2) * transform.scale + transform.y,
-    };
+    const x = parseFloat(el.style.left) + el.offsetWidth / 2;
+    const y = parseFloat(el.style.top) + el.offsetHeight / 2;
+    return { x: x * transform.scale + transform.x, y: y * transform.scale + transform.y };
 }
 
-// Calculate the edge point of a node boundary in a given direction (for better edge positioning)
-function getNodeEdgePoint(nodeId, directionVec) {
+function getNodeEdgePoint(nodeId, directionVec, attach) {
     const el = document.getElementById('node-' + nodeId);
     if (!el) return null;
     
     const cx = parseFloat(el.style.left) + el.offsetWidth / 2;
     const cy = parseFloat(el.style.top) + el.offsetHeight / 2;
-    const hw = el.offsetWidth / 2;   // half width
-    const hh = el.offsetHeight / 2;  // half height
+    const hw = el.offsetWidth / 2;
+    const hh = el.offsetHeight / 2;
     
-    // Auto: find which edge of the rectangle we intersect
-    // Normalize the direction vector
+    if (attach && attach !== 'auto') {
+        let x = cx, y = cy;
+        if (attach === 'left') x = cx - hw;
+        else if (attach === 'right') x = cx + hw;
+        else if (attach === 'top') y = cy - hh;
+        else if (attach === 'bottom') y = cy + hh;
+        return { 
+            x: x * transform.scale + transform.x, 
+            y: y * transform.scale + transform.y 
+        };
+    }
+    
     const len = Math.sqrt(directionVec.x * directionVec.x + directionVec.y * directionVec.y);
     if (len === 0) return nodeCenter(nodeId);
     const dx = directionVec.x / len;
     const dy = directionVec.y / len;
     
-    // Find which edge of the rectangle we intersect
     let t;
     if (Math.abs(dx) > 0 && Math.abs(dy) > 0) {
         const tx = Math.abs(hw / dx);
@@ -677,201 +626,197 @@ function getNodeEdgePoint(nodeId, directionVec) {
     const x = cx + dx * t;
     const y = cy + dy * t;
     
-    // Apply canvas transform
-    return {
-        x: x * transform.scale + transform.x,
-        y: y * transform.scale + transform.y,
+    return { 
+        x: x * transform.scale + transform.x, 
+        y: y * transform.scale + transform.y 
     };
 }
 
 function redrawEdges() {
     const layer = document.getElementById('edges-layer');
     layer.innerHTML = '';
+    
+    const svgDefs = document.getElementById('svg-defs');
+    svgDefs.innerHTML = ''; 
+
     const isDark = document.body.classList.contains('dark-mode');
     const defaultCol = isDark ? '#555' : '#adb5bd';
     const selCol     = isDark ? '#1e90ff' : '#007bff';
-
-    // Update default marker colors
-    document.getElementById('ah-poly').style.fill = defaultCol;
-    document.getElementById('oa-poly').style.stroke = defaultCol;
-    document.getElementById('dm-poly').style.fill = defaultCol;
-    document.getElementById('ci-circle').style.fill = defaultCol;
-
-    // Create color-specific markers for all edge colors
-    const markerGroup = document.getElementById('color-markers');
-    markerGroup.innerHTML = '';
-    EDGE_COLORS.forEach(c => {
-        if (!c.value) return;
-        // Filled arrow marker
-        const marker = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
-        marker.setAttribute('id', 'arrow-' + c.value.substring(1));
-        marker.setAttribute('markerWidth', '8');
-        marker.setAttribute('markerHeight', '7');
-        marker.setAttribute('refX', '7');
-        marker.setAttribute('refY', '3.5');
-        marker.setAttribute('orient', 'auto');
-        const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-        poly.setAttribute('points', '0 0, 8 3.5, 0 7');
-        poly.style.fill = c.value;
-        marker.appendChild(poly);
-        markerGroup.appendChild(marker);
-
-        // Open arrow marker
-        const markerOpen = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
-        markerOpen.setAttribute('id', 'open-arrow-' + c.value.substring(1));
-        markerOpen.setAttribute('markerWidth', '8');
-        markerOpen.setAttribute('markerHeight', '7');
-        markerOpen.setAttribute('refX', '7');
-        markerOpen.setAttribute('refY', '3.5');
-        markerOpen.setAttribute('orient', 'auto');
-        const polyOpen = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-        polyOpen.setAttribute('points', '0 0, 8 3.5, 0 7');
-        polyOpen.style.fill = 'none';
-        polyOpen.style.stroke = c.value;
-        polyOpen.style.strokeWidth = '1';
-        markerOpen.appendChild(polyOpen);
-        markerGroup.appendChild(markerOpen);
-
-        // Diamond marker
-        const markerDiamond = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
-        markerDiamond.setAttribute('id', 'diamond-' + c.value.substring(1));
-        markerDiamond.setAttribute('markerWidth', '8');
-        markerDiamond.setAttribute('markerHeight', '8');
-        markerDiamond.setAttribute('refX', '4');
-        markerDiamond.setAttribute('refY', '4');
-        markerDiamond.setAttribute('orient', 'auto');
-        const diamondPoly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-        diamondPoly.setAttribute('points', '4 0, 8 4, 4 8, 0 4');
-        diamondPoly.style.fill = c.value;
-        markerDiamond.appendChild(diamondPoly);
-        markerGroup.appendChild(markerDiamond);
-
-        // Circle marker
-        const markerCircle = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
-        markerCircle.setAttribute('id', 'circle-' + c.value.substring(1));
-        markerCircle.setAttribute('markerWidth', '8');
-        markerCircle.setAttribute('markerHeight', '8');
-        markerCircle.setAttribute('refX', '4');
-        markerCircle.setAttribute('refY', '4');
-        markerCircle.setAttribute('orient', 'auto');
-        const circlePoly = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        circlePoly.setAttribute('cx', '4');
-        circlePoly.setAttribute('cy', '4');
-        circlePoly.setAttribute('r', '2.5');
-        circlePoly.style.fill = c.value;
-        markerCircle.appendChild(circlePoly);
-        markerGroup.appendChild(markerCircle);
-    });
 
     const map = currentMap();
     if (!map) return;
 
     map.edges.forEach(edge => {
-        const a = getNodeEdgePoint(edge.from, { x: map.nodes[edge.to].x - map.nodes[edge.from].x, y: map.nodes[edge.to].y - map.nodes[edge.from].y });
-        const b = getNodeEdgePoint(edge.to, { x: map.nodes[edge.from].x - map.nodes[edge.to].x, y: map.nodes[edge.from].y - map.nodes[edge.to].y });
+        const centerA = nodeCenter(edge.from), centerB = nodeCenter(edge.to);
+        if (!centerA || !centerB) return;
+        
+        const edgeDir = { x: centerB.x - centerA.x, y: centerB.y - centerA.y };
+        const oppositeDir = { x: -edgeDir.x, y: -edgeDir.y };
+        
+        const a = getNodeEdgePoint(edge.from, edgeDir, edge.fromAttach);
+        const b = getNodeEdgePoint(edge.to, oppositeDir, edge.toAttach);
         if (!a || !b) return;
         
         const isSel = selectedNodeId === edge.from || selectedNodeId === edge.to;
-        
-        // Resolve color
-        const edgeColor = edge.color || '';
-        const lineColor = edgeColor || (isSel ? selCol : defaultCol);
-        
-        // Resolve thickness
-        const thickness = edge.thickness || '2';
-        const actualThickness = parseFloat(thickness);
-        
-        // Resolve dash pattern
-        const dashStyle = edge.dash || 'solid';
-        const dashPattern = DASH_MAP[dashStyle] || 'none';
-        
-        // Resolve arrow type
-        const arrowType = edge.type || 'arrow';
-        
+
+        const edgeColor = edge.color || defaultCol;
+        const strokeCol = isSel ? selCol : edgeColor;
+        const strokeW   = parseFloat(edge.thickness || '2');
+        const dashArr   = DASH_MAP[edge.dash || 'solid'] || 'none';
+
+        let fromType  = edge.fromType || 'none';
+        let toType    = edge.toType || 'arrow';
+        let fromFilled = edge.fromFilled !== false;
+        let toFilled   = edge.toFilled !== false;
+
+        if (edge.type === 'bidirectional') { fromType = 'arrow'; toType = 'arrow'; }
+        else if (edge.type === 'diamond') { toType = 'diamond'; }
+        else if (edge.type === 'square') { toType = 'square'; }
+        else if (edge.type === 'circle') { toType = 'circle'; }
+        else if (edge.type === 'line' || edge.type === 'none') { toType = 'none'; }
+
         const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2 - 30;
+        const d  = `M${a.x},${a.y} Q${mx},${my} ${b.x},${b.y}`;
+
+        const safeId = edge.id.replace(/[^a-z0-9_]/gi, '_');
+        const mkId   = `mk_${safeId}`;
+        let endMarkerUrl = 'none';
+        let startMarkerUrl = 'none';
+
+        if (fromType !== 'none') {
+            const startMk = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+            startMk.setAttribute('id', mkId + '_start');
+            startMk.setAttribute('orient', 'auto');
+
+            if (fromType === 'arrow') {
+                startMk.setAttribute('markerWidth', '8');
+                startMk.setAttribute('markerHeight', '7');
+                startMk.setAttribute('refX', '-2');
+                startMk.setAttribute('refY', '3.5');
+                const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                poly.setAttribute('points', '8 0, 0 3.5, 8 7');
+                if (fromFilled) poly.setAttribute('fill', strokeCol);
+                else { poly.setAttribute('fill', 'none'); poly.setAttribute('stroke', strokeCol); poly.setAttribute('stroke-width', '1'); }
+                startMk.appendChild(poly);
+            } else if (fromType === 'circle') {
+                startMk.setAttribute('markerWidth', '12');
+                startMk.setAttribute('markerHeight', '10');
+                startMk.setAttribute('refX', '-4');
+                startMk.setAttribute('refY', '5');
+                const circ = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circ.setAttribute('cx', '2'); circ.setAttribute('cy', '5'); circ.setAttribute('r', '3');
+                if (fromFilled) circ.setAttribute('fill', strokeCol);
+                else { circ.setAttribute('fill', 'none'); circ.setAttribute('stroke', strokeCol); circ.setAttribute('stroke-width', '1'); }
+                startMk.appendChild(circ);
+            } else if (fromType === 'square') {
+                startMk.setAttribute('markerWidth', '12');
+                startMk.setAttribute('markerHeight', '10');
+                startMk.setAttribute('refX', '-4');
+                startMk.setAttribute('refY', '5');
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('x', '-1'); rect.setAttribute('y', '2'); rect.setAttribute('width', '4'); rect.setAttribute('height', '6');
+                if (fromFilled) rect.setAttribute('fill', strokeCol);
+                else { rect.setAttribute('fill', 'none'); rect.setAttribute('stroke', strokeCol); rect.setAttribute('stroke-width', '1'); }
+                startMk.appendChild(rect);
+            } else if (fromType === 'diamond') {
+                startMk.setAttribute('markerWidth', '12');
+                startMk.setAttribute('markerHeight', '10');
+                startMk.setAttribute('refX', '-4');
+                startMk.setAttribute('refY', '5');
+                const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                poly.setAttribute('points', '4 0, 0 5, 4 10, 2 5');
+                if (fromFilled) poly.setAttribute('fill', strokeCol);
+                else { poly.setAttribute('fill', 'none'); poly.setAttribute('stroke', strokeCol); poly.setAttribute('stroke-width', '1'); }
+                startMk.appendChild(poly);
+            }
+            svgDefs.appendChild(startMk);
+            startMarkerUrl = `url(#${mkId}_start)`;
+        }
+
+        if (toType !== 'none') {
+            const endMk = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+            endMk.setAttribute('id', mkId + '_end');
+            endMk.setAttribute('orient', 'auto');
+
+            if (toType === 'arrow') {
+                endMk.setAttribute('markerWidth', '10');
+                endMk.setAttribute('markerHeight', '10');
+                endMk.setAttribute('refX', '8');
+                endMk.setAttribute('refY', '3.5');
+                endMk.setAttribute('markerHeight', '7');
+                const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                poly.setAttribute('points', '0 0, 8 3.5, 0 7');
+                if (toFilled) poly.setAttribute('fill', strokeCol);
+                else { poly.setAttribute('fill', 'none'); poly.setAttribute('stroke', strokeCol); poly.setAttribute('stroke-width', '1'); }
+                endMk.appendChild(poly);
+            } else if (toType === 'circle') {
+                endMk.setAttribute('markerWidth', '12');
+                endMk.setAttribute('markerHeight', '10');
+                endMk.setAttribute('refX', '10');
+                endMk.setAttribute('refY', '5');
+                const circ = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circ.setAttribute('cx', '6'); circ.setAttribute('cy', '5'); circ.setAttribute('r', '3');
+                if (toFilled) circ.setAttribute('fill', strokeCol);
+                else { circ.setAttribute('fill', 'none'); circ.setAttribute('stroke', strokeCol); circ.setAttribute('stroke-width', '1'); }
+                endMk.appendChild(circ);
+            } else if (toType === 'square') {
+                endMk.setAttribute('markerWidth', '12');
+                endMk.setAttribute('markerHeight', '10');
+                endMk.setAttribute('refX', '13');
+                endMk.setAttribute('refY', '5');
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('x', '7'); rect.setAttribute('y', '2'); rect.setAttribute('width', '4'); rect.setAttribute('height', '6');
+                if (toFilled) rect.setAttribute('fill', strokeCol);
+                else { rect.setAttribute('fill', 'none'); rect.setAttribute('stroke', strokeCol); rect.setAttribute('stroke-width', '1'); }
+                endMk.appendChild(rect);
+            } else if (toType === 'diamond') {
+                endMk.setAttribute('markerWidth', '12');
+                endMk.setAttribute('markerHeight', '10');
+                endMk.setAttribute('refX', '12');
+                endMk.setAttribute('refY', '5');
+                const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                poly.setAttribute('points', '8 0, 12 5, 8 10, 10 5');
+                if (toFilled) poly.setAttribute('fill', strokeCol);
+                else { poly.setAttribute('fill', 'none'); poly.setAttribute('stroke', strokeCol); poly.setAttribute('stroke-width', '1'); }
+                endMk.appendChild(poly);
+            }
+            svgDefs.appendChild(endMk);
+            endMarkerUrl = `url(#${mkId}_end)`;
+        }
 
         const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', `M${a.x},${a.y} Q${mx},${my} ${b.x},${b.y}`);
+        path.setAttribute('d', d);
         path.setAttribute('fill', 'none');
-        path.setAttribute('stroke', lineColor);
-        path.setAttribute('stroke-width', actualThickness);
-        if (dashPattern !== 'none') {
-            path.setAttribute('stroke-dasharray', dashPattern);
-        }
-        
-        // Set marker based on arrow type and color
-        if (arrowType === 'arrow') {
-            if (edgeColor) {
-                path.setAttribute('marker-end', 'url(#arrow-' + edgeColor.substring(1) + ')');
-            } else {
-                path.setAttribute('marker-end', isSel ? 'url(#arrowhead-sel)' : 'url(#arrowhead)');
-            }
-        } else if (arrowType === 'open') {
-            if (edgeColor) {
-                path.setAttribute('marker-end', 'url(#open-arrow-' + edgeColor.substring(1) + ')');
-            } else {
-                path.setAttribute('marker-end', isSel ? 'url(#open-arrow-sel)' : 'url(#open-arrow)');
-            }
-        } else if (arrowType === 'bidirectional') {
-            if (edgeColor) {
-                path.setAttribute('marker-end', 'url(#arrow-' + edgeColor.substring(1) + ')');
-                path.setAttribute('marker-start', 'url(#arrow-' + edgeColor.substring(1) + ')');
-            } else {
-                path.setAttribute('marker-end', isSel ? 'url(#arrowhead-sel)' : 'url(#arrowhead)');
-                path.setAttribute('marker-start', isSel ? 'url(#arrowhead-sel)' : 'url(#arrowhead)');
-            }
-        } else if (arrowType === 'diamond') {
-            if (edgeColor) {
-                path.setAttribute('marker-end', 'url(#diamond-' + edgeColor.substring(1) + ')');
-            } else {
-                path.setAttribute('marker-end', 'url(#diamond-default)');
-            }
-        } else if (arrowType === 'circle') {
-            if (edgeColor) {
-                path.setAttribute('marker-end', 'url(#circle-' + edgeColor.substring(1) + ')');
-            } else {
-                path.setAttribute('marker-end', 'url(#circle-default)');
-            }
-        }
-        // If arrowType is 'line' or 'none', no marker is added
+        path.setAttribute('stroke', strokeCol);
+        path.setAttribute('stroke-width', strokeW);
+        if (dashArr !== 'none') path.setAttribute('stroke-dasharray', dashArr);
+        if (endMarkerUrl !== 'none')   path.setAttribute('marker-end',   endMarkerUrl);
+        if (startMarkerUrl !== 'none') path.setAttribute('marker-start', startMarkerUrl);
         
         layer.appendChild(path);
         
-        // Render edge label if present
         if (edge.label && edge.label.trim()) {
-            const labelX = mx + (edge.labelOffsetX || 0);
-            const labelY = my + (edge.labelOffsetY !== undefined ? edge.labelOffsetY : -34);
+            // FIXED: Using the true midpoint between 'a' and 'b' to sync with the editor
+            const labelX = (a.x + b.x) / 2 + (edge.labelOffsetX || 0);
+            const labelY = (a.y + b.y) / 2 + (edge.labelOffsetY !== undefined ? edge.labelOffsetY : -34);
             
             const labelFontSize = edge.labelFontSize || 11;
             const labelFontFamily = edge.labelFontFamily || 'Roboto';
-            const labelFontColor = edge.labelFontColor || lineColor;
-            const labelFontBold = edge.labelFontBold ? 'bold' : 'normal';
-            const labelFontItalic = edge.labelFontItalic ? 'italic' : 'normal';
-            const labelFontUnderline = edge.labelFontUnderline ? 'underline' : 'none';
-            const labelHighlight = edge.labelHighlight || '';
+            const labelFontColor = edge.labelFontColor || strokeCol;
             
             const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
             text.setAttribute('x', labelX);
             text.setAttribute('y', labelY);
             text.setAttribute('text-anchor', 'middle');
-            text.style.fontSize = labelFontSize + 'px';
-            text.style.fontFamily = labelFontFamily;
-            text.style.fill = labelFontColor;
-            text.style.fontWeight = labelFontBold;
-            text.style.fontStyle = labelFontItalic;
-            text.style.textDecoration = labelFontUnderline;
+            text.setAttribute('font-size', labelFontSize);
+            text.setAttribute('font-family', labelFontFamily + ',sans-serif');
+            text.setAttribute('fill', labelFontColor);
+            if (edge.labelFontBold) text.setAttribute('font-weight', '700');
+            if (edge.labelFontItalic) text.setAttribute('font-style', 'italic');
+            if (edge.labelFontUnderline) text.setAttribute('text-decoration', 'underline');
             text.style.pointerEvents = 'none';
             
-            // Add highlighting if set
-            if (labelHighlight) {
-                const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
-                tspan.textContent = edge.label;
-                tspan.style.background = labelHighlight + '44';
-                text.appendChild(tspan);
-            } else {
-                text.textContent = edge.label;
-            }
-            
+            text.textContent = edge.label;
             layer.appendChild(text);
         }
     });
@@ -899,12 +844,13 @@ function renderInfoPanel() {
     panel.classList.remove('hidden');
     const isDark = document.body.classList.contains('dark-mode');
     
-    // Use custom border color if set, otherwise fall back to COLORS palette
-    let col = node.borderColor || '';
-    if (!col) {
-        const c = COLORS[node.color || 'blue'];
-        col = isDark ? c.dark_border : c.border;
+    // Resolve border color exactly like renderNodes
+    let col = node.borderColor;
+    if (!col && node.color) {
+        const c = COLORS[node.color];
+        if (c) col = isDark ? c.dark_border : c.border;
     }
+    col = col || (isDark ? '#1e90ff' : '#007bff');
 
     document.getElementById('info-title').textContent = node.title;
     document.getElementById('info-title').style.color = col;
@@ -960,12 +906,12 @@ function renderInfoPanel() {
             const other = map.nodes[otherId];
             if (!other) return '';
             
-            // Use custom border color if set, otherwise fall back to COLORS palette
-            let ocol = other.borderColor || '';
-            if (!ocol) {
-                const oc = COLORS[other.color || 'blue'];
-                ocol = isDark ? oc.dark_border : oc.border;
+            let ocol = other.borderColor;
+            if (!ocol && other.color) {
+                const oc = COLORS[other.color];
+                if (oc) ocol = isDark ? oc.dark_border : oc.border;
             }
+            ocol = ocol || (isDark ? '#1e90ff' : '#007bff');
             
             return `<button class="info-conn" onclick="selectNode('${otherId}')"
                 style="color:${ocol};background:${ocol}18;border:none">
