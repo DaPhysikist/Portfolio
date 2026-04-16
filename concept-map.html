@@ -245,6 +245,30 @@
         }
         .dark-mode .node-tag { background: rgba(30,144,255,0.18); }
 
+        /* ── Sub-Map Badge ── */
+        .node-submap-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #28a745;
+            color: #fff;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+            z-index: 15; /* Keeps it above resize handles */
+            transition: transform 0.15s, background 0.15s;
+        }
+        .node-submap-badge:hover {
+            transform: scale(1.15);
+            background: #218838;
+        }
+
         /* ── Resize handles ── */
         .resize-handle {
             position: absolute;
@@ -543,11 +567,51 @@
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+
+        /* ── Breadcrumbs for Nested Maps ── */
+        .breadcrumb-wrap {
+            position: absolute;
+            top: 12px; left: 12px;
+            z-index: 50;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .breadcrumb-btn {
+            padding: 6px 12px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: var(--shadow-light);
+            color: var(--text-color);
+            transition: all 0.15s;
+        }
+        .breadcrumb-btn:hover { border-color: var(--primary-color); color: var(--primary-color); }
+        .breadcrumb-sep { font-size: 10px; color: #888; }
+
+        /* ── Grouping Regions ── */
+        .node.region {
+            z-index: 1; /* Keep behind standard nodes */
+            border-style: dashed !important;
+            background: rgba(0, 123, 255, 0.03) !important;
+            box-shadow: none !important;
+        }
+        .dark-mode .node.region {
+            background: rgba(30, 144, 255, 0.05) !important;
+        }
+        .node.region .node-title {
+            font-size: 16px !important;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            opacity: 0.5;
+        }
     </style>
 </head>
 <body>
 
-<!-- ── HEADER ── -->
 <header class="main-header">
     <a href="/" class="header-icon-link">
         <img src="/android-chrome-512x512.png" alt="Pranav Mehta Logo" class="header-icon">
@@ -564,10 +628,8 @@
     </nav>
 </header>
 
-<!-- ── APP BODY ── -->
 <div class="app-body">
 
-    <!-- TOOLBAR -->
     <aside class="toolbar">
         <div class="toolbar-title">Tools</div>
         <button class="tool-btn active" id="btn-select" onclick="setMode('select')">
@@ -583,6 +645,9 @@
         <div class="toolbar-title">Actions</div>
         <button class="tool-btn" onclick="openNewNodeModal()">
             <i class="fas fa-plus-circle"></i> Add Concept
+        </button>
+        <button class="tool-btn" onclick="addRegion()">
+            <i class="fas fa-vector-square"></i> Add Region
         </button>
         <button class="tool-btn" onclick="fitView()">
             <i class="fas fa-expand"></i> Fit View
@@ -602,27 +667,22 @@
         </button>
     </aside>
 
-    <!-- CANVAS -->
     <div class="canvas-wrap" id="canvas-wrap">
+        <div class="breadcrumb-wrap" id="breadcrumbs"></div>
         <svg id="canvas-svg" xmlns="http://www.w3.org/2000/svg">
             <defs>
-                <!-- default arrowhead (filled) -->
                 <marker id="arr-end" markerWidth="8" markerHeight="7" refX="7" refY="3.5" orient="auto">
                     <polygon points="0 0, 8 3.5, 0 7" class="edge-arrow" id="ah-poly"/>
                 </marker>
-                <!-- open arrowhead -->
                 <marker id="arr-open-end" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
                     <polyline points="1,1 9,5 1,9" fill="none" stroke-width="1.5" class="edge-open-arrow"/>
                 </marker>
-                <!-- diamond -->
                 <marker id="arr-diamond-end" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
                     <polygon points="5,1 9,5 5,9 1,5" class="edge-arrow"/>
                 </marker>
-                <!-- circle -->
                 <marker id="arr-circle-end" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
                     <circle cx="4" cy="4" r="3" class="edge-arrow"/>
                 </marker>
-                <!-- start arrowhead for bidirectional -->
                 <marker id="arr-start" markerWidth="8" markerHeight="7" refX="1" refY="3.5" orient="auto-start-reverse">
                     <polygon points="0 0, 8 3.5, 0 7" class="edge-arrow"/>
                 </marker>
@@ -645,9 +705,14 @@
         </div>
     </div>
 
-    <!-- SIDEBAR -->
     <aside class="sidebar hidden" id="sidebar">
         <h2 id="sidebar-title">Concept</h2>
+
+        <div class="sidebar-section" id="sb-submap-section">
+            <button class="btn-primary" id="btn-submap" onclick="toggleSubMap()">
+                <i class="fas fa-project-diagram"></i> Open Sub-Map
+            </button>
+        </div>
 
         <div class="sidebar-section">
             <div class="sidebar-label">Box styling</div>
@@ -809,7 +874,6 @@
         </button>
     </aside>
 
-    <!-- EDGE SIDEBAR -->
     <aside class="edge-sidebar hidden" id="edge-sidebar">
         <h2><i class="fas fa-bezier-curve" style="color:var(--primary-color)"></i> Connector</h2>
 
@@ -958,7 +1022,6 @@
     </aside>
 </div>
 
-<!-- ── NEW CONCEPT MODAL ── -->
 <div class="modal-overlay" id="modal">
     <div class="modal">
         <h3><i class="fas fa-plus-circle" style="color:var(--primary-color)"></i> New Concept</h3>
@@ -972,7 +1035,6 @@
     </div>
 </div>
 
-<!-- ── NEW MAP MODAL ── -->
 <div class="modal-overlay" id="modal-map">
     <div class="modal">
         <h3><i class="fas fa-folder-plus" style="color:var(--primary-color)"></i> New Map</h3>
@@ -1128,6 +1190,7 @@ function renderAll() {
     renderNodes();
     redrawEdges();
     renderMapList();
+    renderBreadcrumbs();
     updateEmptyHint();
 }
 
@@ -1159,6 +1222,11 @@ function renderNodes() {
 
         const el = document.createElement('div');
         el.className = 'node' + (node.id === selectedNodeId ? ' selected' : '');
+        
+        if (node.isRegion) {
+            el.classList.add('region');
+        }
+
         el.id = 'node-' + node.id;
         el.style.left = node.x + 'px';
         el.style.top = node.y + 'px';
@@ -1172,6 +1240,8 @@ function renderNodes() {
         el.style.fontFamily = fontFamily;
         el.style.fontSize = fontSize + 'px';
         el.style.color = fontColor;
+
+        if (node.subMapId) el.style.borderWidth = '4px';
 
         if (shape === 'rounded') el.style.borderRadius = '8px';
         else if (shape === 'circle') el.style.borderRadius = '50%';
@@ -1205,6 +1275,7 @@ function renderNodes() {
         }
 
         el.innerHTML = `
+            ${node.subMapId ? `<div class="node-submap-badge" title="Open Sub-Map"><i class="fas fa-sitemap"></i></div>` : ''}
             <div class="node-title" data-field="title" style="${titleStyle};cursor:text">${titleContent}</div>
             <p class="node-desc" data-field="desc" style="${descStyle}">${descContent}</p>
             ${tags.length ? `<div class="node-tags">${tags.map(t=>`<span class="node-tag" style="background:${borderColor}22;color:${borderColor}">${escHtml(t)}</span>`).join('')}</div>` : ''}
@@ -1215,6 +1286,18 @@ function renderNodes() {
             const descEl = el.querySelector('[data-field="desc"]');
             if (titleEl) titleEl.style.transform = 'rotate(-45deg)';
             if (descEl) descEl.style.transform = 'rotate(-45deg)';
+        }
+
+        // Sub-Map Badge Interaction
+        const submapBadge = el.querySelector('.node-submap-badge');
+        if (submapBadge) {
+            submapBadge.addEventListener('mousedown', e => e.stopPropagation()); 
+            submapBadge.addEventListener('click', e => {
+                e.stopPropagation();
+                if (state.maps[node.subMapId]) {
+                    switchMap(node.subMapId);
+                }
+            });
         }
 
         // ── Resize handles (only on selected node) ──
@@ -1255,6 +1338,14 @@ function renderNodes() {
             if (e.target.classList.contains('resize-handle')) return;
             onNodeMouseDown(e, node.id);
         });
+
+        el.addEventListener('dblclick', e => {
+            e.stopPropagation();
+            if (node.subMapId && state.maps[node.subMapId]) {
+                switchMap(node.subMapId);
+            }
+        });
+
         el.addEventListener('touchstart', e => onNodeTouchStart(e, node.id), {passive:false});
         el.addEventListener('click', e => onNodeClick(e, node.id));
 
@@ -1846,21 +1937,44 @@ function onNodeMouseDown(e, nodeId) {
     const origX = node.x, origY = node.y;
     let moved = false;
 
+    // IF dragging a region, find all nodes inside it BEFORE we start dragging
+    let childrenToMove = [];
+    if (node.isRegion) {
+        Object.values(currentMapData().nodes).forEach(n => {
+            if (!n.isRegion && n.x >= node.x && n.y >= node.y && 
+                n.x + n.width <= node.x + node.width && n.y + n.height <= node.y + node.height) {
+                childrenToMove.push({ childNode: n, origCX: n.x, origCY: n.y });
+            }
+        });
+    }
+
     function onMove(ev) {
         const dx = (ev.clientX - startX) / transform.scale;
         const dy = (ev.clientY - startY) / transform.scale;
         if (Math.abs(dx) > 3 || Math.abs(dy) > 3) moved = true;
+        
         node.x = origX + dx;
         node.y = origY + dy;
         const el = document.getElementById('node-'+nodeId);
         if (el) { el.style.left = node.x+'px'; el.style.top = node.y+'px'; }
+
+        // Move children concurrently
+        childrenToMove.forEach(c => {
+            c.childNode.x = c.origCX + dx;
+            c.childNode.y = c.origCY + dy;
+            const cEl = document.getElementById('node-' + c.childNode.id);
+            if (cEl) { cEl.style.left = c.childNode.x + 'px'; cEl.style.top = c.childNode.y + 'px'; }
+        });
+
         redrawEdges();
     }
+    
     function onUp() {
         window.removeEventListener('mousemove', onMove);
         window.removeEventListener('mouseup', onUp);
         if (moved) saveState();
     }
+    
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
 }
@@ -2030,6 +2144,16 @@ function renderSidebar() {
             <button class="conn-chip-del" onclick="deleteEdge('${edge.id}');event.stopPropagation()"><i class="fas fa-unlink"></i></button>
         </button>`;
     });
+
+    // Update Sub-Map button UI
+    const smBtn = document.getElementById('btn-submap');
+    if (node.subMapId) {
+        smBtn.innerHTML = '<i class="fas fa-folder-open"></i> Open Sub-Map';
+        smBtn.style.background = '#28a745'; // Green to indicate it exists
+    } else {
+        smBtn.innerHTML = '<i class="fas fa-sitemap"></i> Create Sub-Map';
+        smBtn.style.background = 'var(--primary-color)';
+    }
 }
 
 function updateNode(field, value) {
@@ -2105,7 +2229,7 @@ function removeFile(idx) {
 }
 
 // ─────────────────────────────────────────────
-//  ADD / DELETE NODES
+//  ADD / DELETE NODES & REGIONS
 // ─────────────────────────────────────────────
 function openNewNodeModal() {
     const modal = document.getElementById('modal');
@@ -2151,6 +2275,25 @@ function confirmNewNode() {
     selectNode(id);
 }
 
+function addRegion() {
+    const wrap = document.getElementById('canvas-wrap');
+    const id = 'r_' + Date.now();
+    const cx = (wrap.clientWidth / 2 - transform.x) / transform.scale;
+    const cy = (wrap.clientHeight / 2 - transform.y) / transform.scale;
+    
+    currentMapData().nodes[id] = {
+        id, title: 'New Region', desc: '', tags: '',
+        x: cx - 150, y: cy - 100, links: [], files: [],
+        width: 300, height: 200, 
+        borderWidth: 2, borderDash: 'dashed', borderColor: '#aaa', fillColor: 'transparent',
+        shape: 'rectangle', isRegion: true, 
+        fontSize: 16, fontFamily: 'Roboto', fontColor: '#888'
+    };
+    saveState();
+    renderAll();
+    selectNode(id);
+}
+
 function deleteSelectedNode() {
     if (!selectedNodeId) return;
     const map = currentMapData();
@@ -2178,6 +2321,8 @@ function pasteNode() {
     newNode.id = newId;
     newNode.x += 80;
     newNode.y += 80;
+    // Don't copy subMapIds across copy/paste to avoid circular map references
+    delete newNode.subMapId; 
     currentMapData().nodes[newId] = newNode;
     saveState();
     renderAll();
@@ -2205,7 +2350,7 @@ function pasteEdge() {
 }
 
 // ─────────────────────────────────────────────
-//  MAPS
+//  MAPS & NESTED MAPS
 // ─────────────────────────────────────────────
 function switchMap(id) {
     state.currentMap = id;
@@ -2220,6 +2365,7 @@ function newMap() {
     document.getElementById('modal-map').classList.add('open');
     setTimeout(() => document.getElementById('modal-map-name').focus(), 50);
 }
+
 function confirmNewMap() {
     const name = document.getElementById('modal-map-name').value.trim();
     if (!name) return;
@@ -2229,6 +2375,7 @@ function confirmNewMap() {
     document.getElementById('modal-map').classList.remove('open');
     switchMap(id);
 }
+
 function deleteMap(id, e) {
     e.stopPropagation();
     if (Object.keys(state.maps).length <= 1) return alert('You need at least one map.');
@@ -2236,6 +2383,58 @@ function deleteMap(id, e) {
     delete state.maps[id];
     if (state.currentMap === id) state.currentMap = Object.keys(state.maps)[0];
     saveState(); renderAll();
+}
+
+function toggleSubMap() {
+    if (!selectedNodeId) return;
+    const node = currentMapData().nodes[selectedNodeId];
+    
+    // If it already has a sub-map, open it
+    if (node.subMapId && state.maps[node.subMapId]) {
+        switchMap(node.subMapId);
+        return;
+    }
+    
+    // Otherwise, create a new sub-map
+    const newMapId = 'map_' + Date.now();
+    state.maps[newMapId] = { 
+        name: node.title || 'Sub-Map', 
+        nodes: {}, 
+        edges: [],
+        parentMapId: state.currentMap // Critical for the breadcrumb trail
+    };
+    node.subMapId = newMapId;
+    saveState();
+    switchMap(newMapId);
+}
+
+function renderBreadcrumbs() {
+    const wrap = document.getElementById('breadcrumbs');
+    wrap.innerHTML = '';
+    
+    let path = [];
+    let curr = state.currentMap;
+    
+    // Trace back to the root map
+    while (curr && state.maps[curr]) {
+        path.unshift({ id: curr, name: state.maps[curr].name });
+        curr = state.maps[curr].parentMapId;
+    }
+    
+    // Render the trail
+    path.forEach((step, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'breadcrumb-btn';
+        btn.textContent = step.name;
+        btn.onclick = () => switchMap(step.id);
+        wrap.appendChild(btn);
+        
+        if (index < path.length - 1) {
+            const sep = document.createElement('i');
+            sep.className = 'fas fa-chevron-right breadcrumb-sep';
+            wrap.appendChild(sep);
+        }
+    });
 }
 
 // ─────────────────────────────────────────────
@@ -2291,7 +2490,6 @@ themeToggle.addEventListener('click', () => {
 //  KEYBOARD SHORTCUTS
 // ─────────────────────────────────────────────
 document.addEventListener('keydown', e => {
-    // ── FIX: ignore shortcuts when typing in any input, textarea, OR contenteditable element ──
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
 
     if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
