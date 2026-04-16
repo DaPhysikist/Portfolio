@@ -170,6 +170,47 @@
         .node-tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 5px; }
         .node-tag { font-size: 10px; padding: 1px 6px; border-radius: 10px; }
 
+        /* ── Grouping Regions ── */
+        .node.region {
+            z-index: 1; /* Keep behind standard nodes */
+            border-style: dashed !important;
+            background: rgba(0, 123, 255, 0.03) !important;
+            box-shadow: none !important;
+            cursor: default;
+        }
+        .node.region:hover { transform: none; box-shadow: none !important; }
+        .dark-mode .node.region { background: rgba(30, 144, 255, 0.05) !important; }
+        .node.region .node-title {
+            font-size: 16px !important;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            opacity: 0.5;
+        }
+
+        /* ── Sub-Map Badge ── */
+        .node-submap-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #28a745;
+            color: #fff;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+            z-index: 15;
+            transition: transform 0.15s, background 0.15s;
+        }
+        .node-submap-badge:hover {
+            transform: scale(1.15);
+            background: #218838;
+        }
+
         /* ── Info panel ── */
         .info-panel {
             width: 290px;
@@ -280,7 +321,7 @@
         .center-message p { font-size: 13px; margin: 0; }
         .center-message a { color: var(--primary-color); pointer-events: all; }
 
-        /* ── View-only badge ── */
+        /* ── View-only badge & Breadcrumbs ── */
         .view-badge {
             position: absolute;
             top: 12px; left: 12px;
@@ -294,6 +335,28 @@
             z-index: 50;
             pointer-events: none;
         }
+        .breadcrumb-wrap {
+            position: absolute;
+            top: 42px; left: 12px;
+            z-index: 50;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .breadcrumb-btn {
+            padding: 4px 10px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: var(--shadow-light);
+            color: var(--text-color);
+            transition: all 0.15s;
+        }
+        .breadcrumb-btn:hover { border-color: var(--primary-color); color: var(--primary-color); }
+        .breadcrumb-sep { font-size: 10px; color: #888; }
 
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -332,6 +395,7 @@
         </svg>
         <div id="nodes-layer"></div>
         <div class="view-badge"><i class="fas fa-eye"></i> View only</div>
+        <div class="breadcrumb-wrap" id="breadcrumbs"></div>
         <div class="center-message" id="center-msg" style="display:none">
             <i class="fas fa-map"></i>
             <p id="center-msg-text"></p>
@@ -437,7 +501,7 @@ function showMessage(icon, text) {
 function hideMessage() { document.getElementById('center-msg').style.display = 'none'; }
 
 // ─────────────────────────────────────────────
-//  MAP TABS
+//  MAP TABS & NAVIGATION
 // ─────────────────────────────────────────────
 function renderMapTabs() {
     const tabs = document.getElementById('map-tabs');
@@ -451,6 +515,36 @@ function renderMapTabs() {
     });
 }
 
+function renderBreadcrumbs() {
+    const wrap = document.getElementById('breadcrumbs');
+    wrap.innerHTML = '';
+    
+    let path = [];
+    let curr = currentMapId;
+    
+    // Trace back to the root map via parentMapId if nested
+    while (curr && mapData.maps[curr]) {
+        path.unshift({ id: curr, name: mapData.maps[curr].name });
+        curr = mapData.maps[curr].parentMapId;
+    }
+    
+    if (path.length <= 1) return; // Don't show breadcrumbs if we are not nested
+    
+    path.forEach((step, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'breadcrumb-btn';
+        btn.textContent = step.name;
+        btn.onclick = () => switchMap(step.id);
+        wrap.appendChild(btn);
+        
+        if (index < path.length - 1) {
+            const sep = document.createElement('i');
+            sep.className = 'fas fa-chevron-right breadcrumb-sep';
+            wrap.appendChild(sep);
+        }
+    });
+}
+
 function switchMap(id) {
     currentMapId = id;
     selectedNodeId = null;
@@ -458,6 +552,7 @@ function switchMap(id) {
     renderMapTabs();
     renderNodes();
     redrawEdges();
+    renderBreadcrumbs();
     hideMessage();
     setTimeout(fitView, 50);
 }
@@ -509,6 +604,12 @@ function renderNodes() {
 
         const el = document.createElement('div');
         el.className = 'node' + (node.id === selectedNodeId ? ' selected' : '');
+        
+        // Render Grouping Region class
+        if (node.isRegion) {
+            el.classList.add('region');
+        }
+
         el.id = 'node-' + node.id;
         el.style.left = node.x + 'px';
         el.style.top = node.y + 'px';
@@ -522,6 +623,9 @@ function renderNodes() {
         el.style.fontFamily = fontFamily;
         el.style.fontSize = fontSize + 'px';
         el.style.color = fontColor;
+
+        // Sub-Map visual indicator (thicker border)
+        if (node.subMapId) el.style.borderWidth = '4px';
 
         if (shape === 'rounded') el.style.borderRadius = '8px';
         else if (shape === 'circle') el.style.borderRadius = '50%';
@@ -542,7 +646,6 @@ function renderNodes() {
 
         let titleContent = escHtml(node.title);
         if (node.titleHighlight) {
-            // FIXED: Removed the "44" opacity code to match the editor
             titleContent = `<span style="background-color:${node.titleHighlight};padding:2px 4px;border-radius:2px;display:inline-block">${titleContent}</span>`;
         }
 
@@ -553,11 +656,11 @@ function renderNodes() {
 
         let descContent = escHtml(node.desc || '');
         if (node.desc && node.descHighlight) {
-            // FIXED: Removed the "44" opacity code to match the editor
             descContent = `<span style="background-color:${node.descHighlight};padding:2px 4px;border-radius:2px;display:inline-block">${descContent}</span>`;
         }
 
         el.innerHTML = `
+            ${node.subMapId ? `<div class="node-submap-badge" title="Open Sub-Map"><i class="fas fa-sitemap"></i></div>` : ''}
             <div class="node-title" data-field="title" style="${titleStyle}">${titleContent}</div>
             <p class="node-desc" data-field="desc" style="${descStyle}">${descContent}</p>
             ${tags.length ? `<div class="node-tags">${tags.map(t => `<span class="node-tag" style="background:${borderColor}22;color:${borderColor}">${escHtml(t)}</span>`).join('')}</div>` : ''}
@@ -569,6 +672,25 @@ function renderNodes() {
             if (titleEl) titleEl.style.transform = 'rotate(-45deg)';
             if (descEl) descEl.style.transform = 'rotate(-45deg)';
         }
+
+        // Sub-Map Badge Interaction
+        const submapBadge = el.querySelector('.node-submap-badge');
+        if (submapBadge) {
+            submapBadge.addEventListener('click', e => {
+                e.stopPropagation();
+                if (mapData.maps[node.subMapId]) {
+                    switchMap(node.subMapId);
+                }
+            });
+        }
+
+        // Double-click navigation for sub-maps (matching the editor)
+        el.addEventListener('dblclick', e => {
+            e.stopPropagation();
+            if (node.subMapId && mapData.maps[node.subMapId]) {
+                switchMap(node.subMapId);
+            }
+        });
 
         el.addEventListener('click', e => { e.stopPropagation(); selectNode(node.id); });
         layer.appendChild(el);
@@ -796,7 +918,6 @@ function redrawEdges() {
         layer.appendChild(path);
         
         if (edge.label && edge.label.trim()) {
-            // FIXED: Using the true midpoint between 'a' and 'b' to sync with the editor
             const labelX = (a.x + b.x) / 2 + (edge.labelOffsetX || 0);
             const labelY = (a.y + b.y) / 2 + (edge.labelOffsetY !== undefined ? edge.labelOffsetY : -34);
             
