@@ -200,8 +200,8 @@
             border: 2px solid var(--node-border);
             border-radius: 12px;
             padding: 10px 14px;
-            min-width: 130px;
-            max-width: 210px;
+            min-width: 80px;
+            max-width: none;
             cursor: grab;
             user-select: none;
             box-shadow: var(--node-shadow);
@@ -244,6 +244,28 @@
             color: var(--primary-color);
         }
         .dark-mode .node-tag { background: rgba(30,144,255,0.18); }
+
+        /* ── Resize handles ── */
+        .resize-handle {
+            position: absolute;
+            width: 9px;
+            height: 9px;
+            background: #fff;
+            border: 2px solid var(--primary-color);
+            border-radius: 2px;
+            z-index: 10;
+            pointer-events: all;
+        }
+        .resize-handle:hover { background: var(--primary-color); }
+        /* Positions */
+        .resize-handle[data-dir="nw"] { top: -5px; left: -5px; cursor: nw-resize; }
+        .resize-handle[data-dir="n"]  { top: -5px; left: calc(50% - 4px); cursor: n-resize; }
+        .resize-handle[data-dir="ne"] { top: -5px; right: -5px; cursor: ne-resize; }
+        .resize-handle[data-dir="e"]  { top: calc(50% - 4px); right: -5px; cursor: e-resize; }
+        .resize-handle[data-dir="se"] { bottom: -5px; right: -5px; cursor: se-resize; }
+        .resize-handle[data-dir="s"]  { bottom: -5px; left: calc(50% - 4px); cursor: s-resize; }
+        .resize-handle[data-dir="sw"] { bottom: -5px; left: -5px; cursor: sw-resize; }
+        .resize-handle[data-dir="w"]  { top: calc(50% - 4px); left: -5px; cursor: w-resize; }
 
         /* ── Sidebar ── */
         .sidebar {
@@ -632,11 +654,11 @@
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
                 <div>
                     <label style="font-size:11px;color:#888">Width</label>
-                    <input type="number" id="sb-width" min="80" max="300" style="width:100%" oninput="updateNode('width', parseInt(this.value))">
+                    <input type="number" id="sb-width" min="80" max="500" style="width:100%" oninput="updateNode('width', parseInt(this.value))">
                 </div>
                 <div>
                     <label style="font-size:11px;color:#888">Height</label>
-                    <input type="number" id="sb-height" min="40" max="200" style="width:100%" oninput="updateNode('height', parseInt(this.value))">
+                    <input type="number" id="sb-height" min="40" max="400" style="width:100%" oninput="updateNode('height', parseInt(this.value))">
                 </div>
             </div>
         </div>
@@ -968,13 +990,6 @@
 // ─────────────────────────────────────────────
 //  DATA MODEL
 // ─────────────────────────────────────────────
-// maps: { [mapId]: { name, nodes: {[id]: node}, edges: [{id,from,to}] } }
-// node: { id, title, desc, tags, color, x, y, links:[], files:[] }
-//
-// SOURCE OF TRUTH: map-data.json in the same folder (committed to repo).
-// localStorage is used as a working draft while editing.
-// "Export" always saves as map-data.json so you can commit it directly.
-
 const COLORS = {
     blue:   { border: '#007bff', bg: '#e8f4ff', dark_border: '#1e90ff', dark_bg: '#1a2d40' },
     green:  { border: '#28a745', bg: '#e8f9ed', dark_border: '#2fba54', dark_bg: '#1a2e1e' },
@@ -990,15 +1005,9 @@ let state = {
     currentMap: null,
 };
 
-// Clipboard storage for copy/paste
-let clipboard = {
-    type: null,  // 'node' or 'edge'
-    data: null
-};
+let clipboard = { type: null, data: null };
 
-// loadState is async: tries map-data.json first, falls back to localStorage draft
 async function loadState() {
-    // Always load localStorage draft first so edits survive a refresh
     try {
         const draft = localStorage.getItem('cm_state');
         if (draft) {
@@ -1007,24 +1016,21 @@ async function loadState() {
         }
     } catch(e) {}
 
-    // If no draft, try fetching map-data.json from the repo
     if (!state.maps || Object.keys(state.maps).length === 0) {
         try {
             const res = await fetch('map-data.json?_=' + Date.now());
             if (res.ok) {
                 const data = await res.json();
-                // map-data.json stores the full state object
                 if (data.maps) {
                     state = data;
                 } else if (data.nodes && data.edges) {
-                    // legacy: single-map format
                     const id = 'map_' + Date.now();
                     state.maps = {};
                     state.maps[id] = { name: data.name || 'My Concepts', nodes: data.nodes, edges: data.edges };
                     state.currentMap = id;
                 }
             }
-        } catch(e) { /* file doesn't exist yet — start fresh */ }
+        } catch(e) {}
     }
 
     if (!state.maps || Object.keys(state.maps).length === 0) createDefaultMap();
@@ -1084,7 +1090,7 @@ function fitView() {
 // ─────────────────────────────────────────────
 //  MODE
 // ─────────────────────────────────────────────
-let mode = 'select'; // select | link | pan
+let mode = 'select';
 let linkSource = null;
 
 function setMode(m) {
@@ -1135,15 +1141,10 @@ function renderNodes() {
     layer.innerHTML = '';
     const isDark = document.body.classList.contains('dark-mode');
     Object.values(currentMapData().nodes).forEach(node => {
-        // Use defaults: light blue border, light blue background, or use customs
         let defaultBorder = '#007bff';
         let defaultBg = '#e8f4ff';
-        if (isDark) {
-            defaultBorder = '#1e90ff';
-            defaultBg = '#1a2d40';
-        }
-        
-        // Apply custom styling or defaults
+        if (isDark) { defaultBorder = '#1e90ff'; defaultBg = '#1a2d40'; }
+
         const borderColor = node.borderColor || defaultBorder;
         const bgColor = node.fillColor || defaultBg;
         const borderWidth = node.borderWidth || 2;
@@ -1155,7 +1156,7 @@ function renderNodes() {
         const descFontSize = node.descFontSize || 10;
         const descFontFamily = node.descFontFamily || 'Roboto';
         const descFontColor = node.descFontColor || fontColor;
-        
+
         const el = document.createElement('div');
         el.className = 'node' + (node.id === selectedNodeId ? ' selected' : '');
         el.id = 'node-' + node.id;
@@ -1171,8 +1172,7 @@ function renderNodes() {
         el.style.fontFamily = fontFamily;
         el.style.fontSize = fontSize + 'px';
         el.style.color = fontColor;
-        
-        // Apply shape styling
+
         if (shape === 'rounded') el.style.borderRadius = '8px';
         else if (shape === 'circle') el.style.borderRadius = '50%';
         else if (shape === 'diamond') {
@@ -1183,17 +1183,17 @@ function renderNodes() {
         }
 
         const tags = (node.tags || '').split(',').map(t=>t.trim()).filter(Boolean);
-        
+
         let titleStyle = `color:${fontColor};font-size:${fontSize}px`;
         if (node.fontBold) titleStyle += ';font-weight:700';
         if (node.fontItalic) titleStyle += ';font-style:italic';
         if (node.fontUnderline) titleStyle += ';text-decoration:underline';
-        
+
         let titleContent = escHtml(node.title);
         if (node.titleHighlight) {
             titleContent = `<span style="background-color:${node.titleHighlight};padding:2px 4px;border-radius:2px;display:inline-block">${titleContent}</span>`;
         }
-        
+
         let descStyle = `color:${descFontColor};font-family:${descFontFamily};font-size:${descFontSize}px;cursor:text;${!node.desc ? 'opacity:0.5' : ''}`;
         if (node.descFontBold) descStyle += ';font-weight:700';
         if (node.descFontItalic) descStyle += ';font-style:italic';
@@ -1209,8 +1209,7 @@ function renderNodes() {
             <p class="node-desc" data-field="desc" style="${descStyle}">${descContent}</p>
             ${tags.length ? `<div class="node-tags">${tags.map(t=>`<span class="node-tag" style="background:${borderColor}22;color:${borderColor}">${escHtml(t)}</span>`).join('')}</div>` : ''}
         `;
-        
-        // Undo diamond transform for inner content
+
         if (shape === 'diamond') {
             const titleEl = el.querySelector('[data-field="title"]');
             const descEl = el.querySelector('[data-field="desc"]');
@@ -1218,17 +1217,31 @@ function renderNodes() {
             if (descEl) descEl.style.transform = 'rotate(-45deg)';
         }
 
-        // Add click handlers for title and description editing
+        // ── Resize handles (only on selected node) ──
+        if (node.id === selectedNodeId) {
+            ['nw','n','ne','e','se','s','sw','w'].forEach(dir => {
+                const handle = document.createElement('div');
+                handle.className = 'resize-handle';
+                handle.dataset.dir = dir;
+                handle.addEventListener('mousedown', e => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    startResize(e, node.id, dir);
+                });
+                el.appendChild(handle);
+            });
+        }
+
         const titleEl = el.querySelector('[data-field="title"]');
         const descEl = el.querySelector('[data-field="desc"]');
-        
+
         if (titleEl) {
             titleEl.addEventListener('click', e => {
                 e.stopPropagation();
                 startEditingField(node.id, 'title', titleEl);
             });
         }
-        
+
         if (descEl) {
             descEl.addEventListener('click', e => {
                 e.stopPropagation();
@@ -1236,10 +1249,10 @@ function renderNodes() {
             });
         }
 
-        // drag
         el.addEventListener('mousedown', e => {
-            // Don't drag if clicking text content
             if (e.target === titleEl || e.target === descEl) return;
+            // Don't start drag if clicking a resize handle
+            if (e.target.classList.contains('resize-handle')) return;
             onNodeMouseDown(e, node.id);
         });
         el.addEventListener('touchstart', e => onNodeTouchStart(e, node.id), {passive:false});
@@ -1250,55 +1263,122 @@ function renderNodes() {
 }
 
 // ─────────────────────────────────────────────
+//  RESIZE
+// ─────────────────────────────────────────────
+function startResize(e, nodeId, dir) {
+    const node = currentMapData().nodes[nodeId];
+    const el = document.getElementById('node-' + nodeId);
+    if (!node || !el) return;
+
+    const startMouseX = e.clientX;
+    const startMouseY = e.clientY;
+    const origX = node.x;
+    const origY = node.y;
+    const origW = node.width  || el.offsetWidth;
+    const origH = node.height || el.offsetHeight;
+
+    const MIN_W = 80, MIN_H = 40;
+
+    function onMove(ev) {
+        const rawDx = (ev.clientX - startMouseX) / transform.scale;
+        const rawDy = (ev.clientY - startMouseY) / transform.scale;
+
+        let newX = origX, newY = origY;
+        let newW = origW, newH = origH;
+
+        // Horizontal
+        if (dir.includes('e')) {
+            newW = Math.max(MIN_W, origW + rawDx);
+        }
+        if (dir.includes('w')) {
+            const dw = Math.min(rawDx, origW - MIN_W);
+            newW = origW - dw;
+            newX = origX + dw;
+        }
+        // Vertical
+        if (dir.includes('s')) {
+            newH = Math.max(MIN_H, origH + rawDy);
+        }
+        if (dir.includes('n')) {
+            const dh = Math.min(rawDy, origH - MIN_H);
+            newH = origH - dh;
+            newY = origY + dh;
+        }
+
+        node.x = newX;
+        node.y = newY;
+        node.width = Math.round(newW);
+        node.height = Math.round(newH);
+
+        el.style.left = newX + 'px';
+        el.style.top  = newY + 'px';
+        el.style.width = node.width + 'px';
+        el.style.minHeight = node.height + 'px';
+
+        // Update sidebar inputs live
+        const wInput = document.getElementById('sb-width');
+        const hInput = document.getElementById('sb-height');
+        if (wInput) wInput.value = node.width;
+        if (hInput) hInput.value = node.height;
+
+        redrawEdges();
+    }
+
+    function onUp() {
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+        saveState();
+        renderNodes(); // re-render to reposition handles correctly
+    }
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+}
+
+// ─────────────────────────────────────────────
 //  INLINE EDITING
 // ─────────────────────────────────────────────
 function startEditingField(nodeId, field, element) {
     if (!selectedNodeId || selectedNodeId !== nodeId) {
         selectNode(nodeId);
     }
-    
+
     const node = currentMapData().nodes[nodeId];
     const currentValue = node[field] || '';
-    
-    // Clear placeholder text if editing empty field
+
     if (!currentValue && element.textContent.includes('(click to add')) {
         element.textContent = '';
     }
-    
-    // Make element contenteditable
+
     element.contentEditable = true;
     element.style.outline = '2px solid #007bff';
     element.style.outlineOffset = '2px';
     element.style.opacity = '1';
     element.focus();
-    
-    // Select all text
+
     const range = document.createRange();
     range.selectNodeContents(element);
     const sel = window.getSelection();
     sel.removeAllRanges();
     sel.addRange(range);
-    
+
     function finishEditing() {
         const newValue = element.textContent.trim();
         element.contentEditable = false;
         element.style.outline = 'none';
-        
         if (newValue !== currentValue) {
             updateNode(field, newValue);
         } else {
             renderNodes();
         }
     }
-    
-    // Save on blur
+
     const blurHandler = () => {
         finishEditing();
         element.removeEventListener('blur', blurHandler);
     };
     element.addEventListener('blur', blurHandler);
-    
-    // Save on Enter, Cancel on Escape
+
     const keyHandler = e => {
         if (e.key === 'Enter') {
             e.preventDefault();
@@ -1311,6 +1391,9 @@ function startEditingField(nodeId, field, element) {
             element.removeEventListener('keydown', keyHandler);
             element.removeEventListener('blur', blurHandler);
         }
+        // All other keys (including Space) propagate normally inside the editable element.
+        // We stop them from bubbling to the document-level shortcut handler.
+        e.stopPropagation();
     };
     element.addEventListener('keydown', keyHandler);
 }
@@ -1342,56 +1425,41 @@ function nodeCenter(nodeId) {
     return { x: x * transform.scale + transform.x, y: y * transform.scale + transform.y };
 }
 
-// Calculate the edge point of a node boundary in a given direction
-// attach: 'auto', 'left', 'right', 'top', 'bottom'
 function getNodeEdgePoint(nodeId, directionVec, attach) {
     const el = document.getElementById('node-' + nodeId);
     if (!el) return null;
-    
+
     const cx = parseFloat(el.style.left) + el.offsetWidth / 2;
     const cy = parseFloat(el.style.top) + el.offsetHeight / 2;
-    const hw = el.offsetWidth / 2;   // half width
-    const hh = el.offsetHeight / 2;  // half height
-    
-    // If attachment side is specified, use that instead of auto calculation
+    const hw = el.offsetWidth / 2;
+    const hh = el.offsetHeight / 2;
+
     if (attach && attach !== 'auto') {
         let x = cx, y = cy;
         if (attach === 'left') x = cx - hw;
         else if (attach === 'right') x = cx + hw;
         else if (attach === 'top') y = cy - hh;
         else if (attach === 'bottom') y = cy + hh;
-        return { 
-            x: x * transform.scale + transform.x, 
-            y: y * transform.scale + transform.y 
-        };
+        return { x: x * transform.scale + transform.x, y: y * transform.scale + transform.y };
     }
-    
-    // Auto: find which edge of the rectangle we intersect
-    // Normalize the direction vector
+
     const len = Math.sqrt(directionVec.x * directionVec.x + directionVec.y * directionVec.y);
     if (len === 0) return nodeCenter(nodeId);
     const dx = directionVec.x / len;
     const dy = directionVec.y / len;
-    
-    // Find which edge of the rectangle we intersect by checking which is smaller
+
     let t;
     if (Math.abs(dx) > 0 && Math.abs(dy) > 0) {
-        const tx = Math.abs(hw / dx);
-        const ty = Math.abs(hh / dy);
-        t = Math.min(tx, ty);
+        t = Math.min(Math.abs(hw / dx), Math.abs(hh / dy));
     } else if (Math.abs(dx) > 0) {
         t = Math.abs(hw / dx);
     } else {
         t = Math.abs(hh / dy);
     }
-    
-    const x = cx + dx * t;
-    const y = cy + dy * t;
-    
-    // Apply canvas transform
-    return { 
-        x: x * transform.scale + transform.x, 
-        y: y * transform.scale + transform.y 
+
+    return {
+        x: (cx + dx * t) * transform.scale + transform.x,
+        y: (cy + dy * t) * transform.scale + transform.y
     };
 }
 
@@ -1428,26 +1496,23 @@ function redrawEdges() {
     const defaultCol = isDark ? '#555' : '#adb5bd';
     const selCol     = isDark ? '#1e90ff' : '#007bff';
 
-    // Update all marker colors to default
     document.querySelectorAll('.edge-arrow').forEach(p => p.style.fill = defaultCol);
     document.querySelectorAll('.edge-open-arrow').forEach(p => p.style.stroke = defaultCol);
 
     currentMapData().edges.forEach(edge => {
         const centerA = nodeCenter(edge.from), centerB = nodeCenter(edge.to);
         if (!centerA || !centerB) return;
-        
-        // Calculate edge boundary points using custom attachment points if specified
+
         const edgeDir = { x: centerB.x - centerA.x, y: centerB.y - centerA.y };
         const oppositeDir = { x: -edgeDir.x, y: -edgeDir.y };
-        
+
         const a = getNodeEdgePoint(edge.from, edgeDir, edge.fromAttach);
         const b = getNodeEdgePoint(edge.to, oppositeDir, edge.toAttach);
         if (!a || !b) return;
-        
+
         const isSel  = selectedEdgeId === edge.id;
         const isNodeSel = selectedNodeId === edge.from || selectedNodeId === edge.to;
 
-        // Resolve color
         const edgeColor = edge.color || (isNodeSel ? selCol : defaultCol);
         const strokeCol = isSel ? selCol : edgeColor;
         const strokeW   = parseFloat(edge.thickness || '2') * (isSel ? 1.2 : 1);
@@ -1457,20 +1522,16 @@ function redrawEdges() {
         const fromFilled = edge.fromFilled !== false;
         const toFilled   = edge.toFilled !== false;
 
-        // Curved path
         const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2 - 30;
         const d  = `M${a.x},${a.y} Q${mx},${my} ${b.x},${b.y}`;
 
-        // Create a unique per-edge marker by embedding color in id
         const safeId = edge.id.replace(/[^a-z0-9_]/gi, '_');
         const mkId   = `mk_${safeId}`;
 
-        // Inject per-edge marker into defs
         const svgDefs = document.querySelector('#canvas-svg defs');
         let endMarkerUrl = 'none';
         let startMarkerUrl = 'none';
 
-        // Create start marker (fromType)
         if (fromType !== 'none') {
             const startMk = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
             startMk.setAttribute('id', mkId + '_start');
@@ -1487,30 +1548,21 @@ function redrawEdges() {
                 else { poly.setAttribute('fill', 'none'); poly.setAttribute('stroke', strokeCol); poly.setAttribute('stroke-width', '1'); }
                 startMk.appendChild(poly);
             } else if (fromType === 'circle') {
-                startMk.setAttribute('markerWidth', '12');
-                startMk.setAttribute('markerHeight', '10');
-                startMk.setAttribute('refX', '-4');
-                startMk.setAttribute('refY', '5');
+                startMk.setAttribute('markerWidth', '12'); startMk.setAttribute('markerHeight', '10'); startMk.setAttribute('refX', '-4'); startMk.setAttribute('refY', '5');
                 const circ = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                 circ.setAttribute('cx', '2'); circ.setAttribute('cy', '5'); circ.setAttribute('r', '3');
                 if (fromFilled) circ.setAttribute('fill', strokeCol);
                 else { circ.setAttribute('fill', 'none'); circ.setAttribute('stroke', strokeCol); circ.setAttribute('stroke-width', '1'); }
                 startMk.appendChild(circ);
             } else if (fromType === 'square') {
-                startMk.setAttribute('markerWidth', '12');
-                startMk.setAttribute('markerHeight', '10');
-                startMk.setAttribute('refX', '-4');
-                startMk.setAttribute('refY', '5');
+                startMk.setAttribute('markerWidth', '12'); startMk.setAttribute('markerHeight', '10'); startMk.setAttribute('refX', '-4'); startMk.setAttribute('refY', '5');
                 const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
                 rect.setAttribute('x', '-1'); rect.setAttribute('y', '2'); rect.setAttribute('width', '4'); rect.setAttribute('height', '6');
                 if (fromFilled) rect.setAttribute('fill', strokeCol);
                 else { rect.setAttribute('fill', 'none'); rect.setAttribute('stroke', strokeCol); rect.setAttribute('stroke-width', '1'); }
                 startMk.appendChild(rect);
             } else if (fromType === 'diamond') {
-                startMk.setAttribute('markerWidth', '12');
-                startMk.setAttribute('markerHeight', '10');
-                startMk.setAttribute('refX', '-4');
-                startMk.setAttribute('refY', '5');
+                startMk.setAttribute('markerWidth', '12'); startMk.setAttribute('markerHeight', '10'); startMk.setAttribute('refX', '-4'); startMk.setAttribute('refY', '5');
                 const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
                 poly.setAttribute('points', '4 0, 0 5, 4 10, 2 5');
                 if (fromFilled) poly.setAttribute('fill', strokeCol);
@@ -1521,48 +1573,34 @@ function redrawEdges() {
             startMarkerUrl = `url(#${mkId}_start)`;
         }
 
-        // Create end marker (toType)
         if (toType !== 'none') {
             const endMk = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
             endMk.setAttribute('id', mkId + '_end');
             endMk.setAttribute('orient', 'auto');
 
             if (toType === 'arrow') {
-                endMk.setAttribute('markerWidth', '10');
-                endMk.setAttribute('markerHeight', '10');
-                endMk.setAttribute('refX', '8');
-                endMk.setAttribute('refY', '3.5');
-                endMk.setAttribute('markerHeight', '7');
+                endMk.setAttribute('markerWidth', '10'); endMk.setAttribute('markerHeight', '7'); endMk.setAttribute('refX', '8'); endMk.setAttribute('refY', '3.5');
                 const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
                 poly.setAttribute('points', '0 0, 8 3.5, 0 7');
                 if (toFilled) poly.setAttribute('fill', strokeCol);
                 else { poly.setAttribute('fill', 'none'); poly.setAttribute('stroke', strokeCol); poly.setAttribute('stroke-width', '1'); }
                 endMk.appendChild(poly);
             } else if (toType === 'circle') {
-                endMk.setAttribute('markerWidth', '12');
-                endMk.setAttribute('markerHeight', '10');
-                endMk.setAttribute('refX', '10');
-                endMk.setAttribute('refY', '5');
+                endMk.setAttribute('markerWidth', '12'); endMk.setAttribute('markerHeight', '10'); endMk.setAttribute('refX', '10'); endMk.setAttribute('refY', '5');
                 const circ = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                 circ.setAttribute('cx', '6'); circ.setAttribute('cy', '5'); circ.setAttribute('r', '3');
                 if (toFilled) circ.setAttribute('fill', strokeCol);
                 else { circ.setAttribute('fill', 'none'); circ.setAttribute('stroke', strokeCol); circ.setAttribute('stroke-width', '1'); }
                 endMk.appendChild(circ);
             } else if (toType === 'square') {
-                endMk.setAttribute('markerWidth', '12');
-                endMk.setAttribute('markerHeight', '10');
-                endMk.setAttribute('refX', '13');
-                endMk.setAttribute('refY', '5');
+                endMk.setAttribute('markerWidth', '12'); endMk.setAttribute('markerHeight', '10'); endMk.setAttribute('refX', '13'); endMk.setAttribute('refY', '5');
                 const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
                 rect.setAttribute('x', '7'); rect.setAttribute('y', '2'); rect.setAttribute('width', '4'); rect.setAttribute('height', '6');
                 if (toFilled) rect.setAttribute('fill', strokeCol);
                 else { rect.setAttribute('fill', 'none'); rect.setAttribute('stroke', strokeCol); rect.setAttribute('stroke-width', '1'); }
                 endMk.appendChild(rect);
             } else if (toType === 'diamond') {
-                endMk.setAttribute('markerWidth', '12');
-                endMk.setAttribute('markerHeight', '10');
-                endMk.setAttribute('refX', '12');
-                endMk.setAttribute('refY', '5');
+                endMk.setAttribute('markerWidth', '12'); endMk.setAttribute('markerHeight', '10'); endMk.setAttribute('refX', '12'); endMk.setAttribute('refY', '5');
                 const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
                 poly.setAttribute('points', '8 0, 12 5, 8 10, 10 5');
                 if (toFilled) poly.setAttribute('fill', strokeCol);
@@ -1585,7 +1623,6 @@ function redrawEdges() {
         path.style.cursor = 'pointer';
         path.style.pointerEvents = 'auto';
 
-        // hit area (invisible wide stroke)
         const hitPath = document.createElementNS('http://www.w3.org/2000/svg','path');
         hitPath.setAttribute('d', d);
         hitPath.setAttribute('fill', 'none');
@@ -1597,7 +1634,6 @@ function redrawEdges() {
         layer.appendChild(hitPath);
         layer.appendChild(path);
 
-        // Edge label
         if (edge.label && edge.label.trim()) {
             const labelOffsetX = edge.labelOffsetX || 0;
             const labelOffsetY = edge.labelOffsetY !== undefined ? edge.labelOffsetY : -34;
@@ -1605,7 +1641,7 @@ function redrawEdges() {
             const labelFontSize = edge.labelFontSize || 11;
             const labelFontFamily = edge.labelFontFamily || 'Roboto';
             const labelFontColor = edge.labelFontColor || strokeCol;
-            
+
             const text = document.createElementNS('http://www.w3.org/2000/svg','text');
             text.setAttribute('x', lx); text.setAttribute('y', ly);
             text.setAttribute('text-anchor', 'middle');
@@ -1615,7 +1651,7 @@ function redrawEdges() {
             if (edge.labelFontBold) text.setAttribute('font-weight', '700');
             if (edge.labelFontItalic) text.setAttribute('font-style', 'italic');
             if (edge.labelFontUnderline) text.setAttribute('text-decoration', 'underline');
-            
+
             const tw = edge.label.length * (labelFontSize * 0.6) + 10;
             const bg = document.createElementNS('http://www.w3.org/2000/svg','rect');
             bg.setAttribute('x', lx - tw/2); bg.setAttribute('y', ly - labelFontSize - 6);
@@ -1623,26 +1659,23 @@ function redrawEdges() {
             bg.setAttribute('rx', 4);
             bg.setAttribute('fill', 'transparent');
             bg.setAttribute('fill-opacity', '0');
-            
+
             text.textContent = edge.label;
             text.style.cursor = 'grab';
             text.style.pointerEvents = 'auto';
             bg.style.cursor = 'grab';
             bg.style.pointerEvents = 'auto';
-            
-            // Make label draggable
+
             text.addEventListener('mousedown', e => {
                 e.stopPropagation();
                 selectEdge(edge.id);
                 const startX = e.clientX, startY = e.clientY;
                 const origOffsetX = edge.labelOffsetX || 0;
                 const origOffsetY = edge.labelOffsetY !== undefined ? edge.labelOffsetY : -34;
-                
+
                 function onMove(ev) {
-                    const dx = (ev.clientX - startX) / transform.scale;
-                    const dy = (ev.clientY - startY) / transform.scale;
-                    edge.labelOffsetX = origOffsetX + dx;
-                    edge.labelOffsetY = origOffsetY + dy;
+                    edge.labelOffsetX = origOffsetX + (ev.clientX - startX) / transform.scale;
+                    edge.labelOffsetY = origOffsetY + (ev.clientY - startY) / transform.scale;
                     document.getElementById('es-label-offset-x').value = edge.labelOffsetX;
                     document.getElementById('es-label-offset-y').value = edge.labelOffsetY;
                     redrawEdges();
@@ -1658,7 +1691,7 @@ function redrawEdges() {
             bg.addEventListener('mousedown', e => {
                 text.dispatchEvent(new MouseEvent('mousedown', {clientX: e.clientX, clientY: e.clientY, bubbles: true}));
             });
-            
+
             layer.appendChild(bg);
             layer.appendChild(text);
         }
@@ -1667,17 +1700,12 @@ function redrawEdges() {
 
 function addEdge(fromId, toId) {
     const map = currentMapData();
-    // prevent duplicates
     if (map.edges.find(e => (e.from===fromId&&e.to===toId)||(e.from===toId&&e.to===fromId))) return;
     map.edges.push({
         id: 'e_'+Date.now(), from: fromId, to: toId,
-        // Marker types at each end
         fromType: 'none', toType: 'arrow', fromFilled: true, toFilled: true,
-        // Line styling
         dash: 'solid', thickness: '2', color: '', label: '',
-        // Attachment points
         fromAttach: 'auto', toAttach: 'auto',
-        // Label styling
         labelFontSize: 11, labelFontFamily: 'Roboto', labelFontColor: '', labelFontBold: false, labelFontItalic: false, labelFontUnderline: false,
         labelOffsetX: 0, labelOffsetY: -34
     });
@@ -1736,30 +1764,23 @@ function renderEdgeSidebar() {
     const edgeThickness = edge.thickness || '2';
     const edgeColor  = edge.color      || '';
 
-    // Sync from marker type buttons
     document.querySelectorAll('[data-field="fromType"]').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.val === fromType);
     });
-    // Sync to marker type buttons
     document.querySelectorAll('[data-field="toType"]').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.val === toType);
     });
 
-    // Sync filled toggles
-    const fromFilledBtn = document.getElementById('es-from-filled');
-    const toFilledBtn = document.getElementById('es-to-filled');
-    fromFilledBtn.classList.toggle('active', fromFilled);
-    toFilledBtn.classList.toggle('active', toFilled);
+    document.getElementById('es-from-filled').classList.toggle('active', fromFilled);
+    document.getElementById('es-to-filled').classList.toggle('active', toFilled);
 
-    // Sync dash buttons
     document.querySelectorAll('#es-dash .opt-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.val === edgeDash);
     });
-    // Sync thickness buttons
     document.querySelectorAll('#es-thickness .opt-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.val === edgeThickness);
     });
-    // Color swatches
+
     const swatchContainer = document.getElementById('es-color');
     swatchContainer.innerHTML = '';
     EDGE_COLORS.forEach(c => {
@@ -1771,28 +1792,22 @@ function renderEdgeSidebar() {
         sw.addEventListener('click', () => updateEdge('color', c.value));
         swatchContainer.appendChild(sw);
     });
-    // Label text input
+
     document.getElementById('es-label').value = edge.label || '';
-    // Label styling
     document.getElementById('es-label-font-family').value = edge.labelFontFamily || 'Roboto';
     document.getElementById('es-label-font-size').value = edge.labelFontSize || 11;
     document.getElementById('es-label-font-color').value = edge.labelFontColor || '';
     document.getElementById('es-label-offset-x').value = edge.labelOffsetX || 0;
     document.getElementById('es-label-offset-y').value = edge.labelOffsetY !== undefined ? edge.labelOffsetY : -34;
-    
-    const labelBoldBtn = document.getElementById('es-label-font-bold');
-    const labelItalicBtn = document.getElementById('es-label-font-italic');
-    const labelUnderlineBtn = document.getElementById('es-label-font-underline');
-    labelBoldBtn.classList.toggle('active', edge.labelFontBold);
-    labelItalicBtn.classList.toggle('active', edge.labelFontItalic);
-    labelUnderlineBtn.classList.toggle('active', edge.labelFontUnderline);
+
+    document.getElementById('es-label-font-bold').classList.toggle('active', edge.labelFontBold);
+    document.getElementById('es-label-font-italic').classList.toggle('active', edge.labelFontItalic);
+    document.getElementById('es-label-font-underline').classList.toggle('active', edge.labelFontUnderline);
 }
 
 // ─────────────────────────────────────────────
 //  NODE INTERACTIONS
 // ─────────────────────────────────────────────
-let dragging = null;
-
 function onNodeClick(e, nodeId) {
     e.stopPropagation();
     if (mode === 'link') {
@@ -1819,6 +1834,8 @@ function selectNode(nodeId) {
     document.getElementById('edge-sidebar').classList.add('hidden');
     renderSidebar();
     redrawEdges();
+    // Re-render nodes so resize handles appear/disappear
+    renderNodes();
 }
 
 function onNodeMouseDown(e, nodeId) {
@@ -1896,7 +1913,6 @@ window.addEventListener('mouseup', () => {
     if (panning) { panning = false; wrap.style.cursor = mode==='pan'?'grab':'default'; }
 });
 
-// scroll to zoom
 wrap.addEventListener('wheel', e => {
     e.preventDefault();
     const factor = e.deltaY < 0 ? 1.08 : 0.93;
@@ -1908,9 +1924,7 @@ wrap.addEventListener('wheel', e => {
     applyTransform();
 }, {passive:false});
 
-// click canvas to deselect
 wrap.addEventListener('click', e => {
-    // Check if click was on empty canvas (not on a node or edge)
     if (e.target === wrap || e.target.id === 'canvas-svg' || e.target === document.getElementById('nodes-layer')) {
         selectNode(null);
         selectedEdgeId = null;
@@ -1919,10 +1933,8 @@ wrap.addEventListener('click', e => {
     }
 });
 
-// Add SVG click handling for empty SVG background clicks to deselect
 const svg = document.getElementById('canvas-svg');
 svg.addEventListener('click', e => {
-    // Only handle clicks on the SVG itself, not on paths (which have their own handlers)
     if (e.target === svg) {
         selectNode(null);
         selectedEdgeId = null;
@@ -1950,7 +1962,6 @@ function renderSidebar() {
     document.getElementById('sb-desc').value = node.desc || '';
     document.getElementById('sb-tags').value = node.tags || '';
 
-    // Styling fields
     document.getElementById('sb-width').value = node.width || 150;
     document.getElementById('sb-height').value = node.height || 60;
     document.getElementById('sb-border-width').value = node.borderWidth || 2;
@@ -1966,24 +1977,14 @@ function renderSidebar() {
     document.getElementById('sb-desc-font-size').value = node.descFontSize || 10;
     document.getElementById('sb-desc-font-color').value = node.descFontColor || '';
     document.getElementById('sb-desc-highlight').value = node.descHighlight || '';
-    
-    // Title text buttons
-    const boldBtn = document.getElementById('sb-font-bold');
-    const italicBtn = document.getElementById('sb-font-italic');
-    const underlineBtn = document.getElementById('sb-font-underline');
-    boldBtn.classList.toggle('active', node.fontBold);
-    italicBtn.classList.toggle('active', node.fontItalic);
-    underlineBtn.classList.toggle('active', node.fontUnderline);
-    
-    // Description text buttons
-    const descBoldBtn = document.getElementById('sb-desc-font-bold');
-    const descItalicBtn = document.getElementById('sb-desc-font-italic');
-    const descUnderlineBtn = document.getElementById('sb-desc-font-underline');
-    descBoldBtn.classList.toggle('active', node.descFontBold);
-    descItalicBtn.classList.toggle('active', node.descFontItalic);
-    descUnderlineBtn.classList.toggle('active', node.descFontUnderline);
 
-    // links
+    document.getElementById('sb-font-bold').classList.toggle('active', node.fontBold);
+    document.getElementById('sb-font-italic').classList.toggle('active', node.fontItalic);
+    document.getElementById('sb-font-underline').classList.toggle('active', node.fontUnderline);
+    document.getElementById('sb-desc-font-bold').classList.toggle('active', node.descFontBold);
+    document.getElementById('sb-desc-font-italic').classList.toggle('active', node.descFontItalic);
+    document.getElementById('sb-desc-font-underline').classList.toggle('active', node.descFontUnderline);
+
     const ll = document.getElementById('sb-links');
     ll.innerHTML = '';
     (node.links || []).forEach((lnk, i) => {
@@ -2000,7 +2001,6 @@ function renderSidebar() {
         ll.appendChild(entry);
     });
 
-    // files
     const fl = document.getElementById('sb-files');
     fl.innerHTML = '';
     (node.files || []).forEach((f, i) => {
@@ -2012,7 +2012,6 @@ function renderSidebar() {
         </div>`;
     });
 
-    // connections
     const cl = document.getElementById('sb-connections');
     cl.innerHTML = '';
     const map = currentMapData();
@@ -2021,7 +2020,7 @@ function renderSidebar() {
         const other = map.nodes[otherId];
         if (!other) return;
         const isDark = document.body.classList.contains('dark-mode');
-        let col = other.borderColor || '#007bff';  // Use custom border color or default
+        let col = other.borderColor || '#007bff';
         if (isDark && !other.borderColor) col = '#1e90ff';
         const label = edge.label ? ` <em style="font-size:10px;opacity:0.7">${escHtml(edge.label)}</em>` : '';
         cl.innerHTML += `
@@ -2037,8 +2036,8 @@ function updateNode(field, value) {
     if (!selectedNodeId) return;
     currentMapData().nodes[selectedNodeId][field] = value;
     saveState();
-    renderNodes();  // Full re-render to apply all styling
-    renderSidebar(); // Refresh sidebar values
+    renderNodes();
+    renderSidebar();
     redrawEdges();
 }
 
@@ -2067,12 +2066,11 @@ function editLink(idx, url) {
     titleEl.value = url;
     titleEl.placeholder = 'Enter link URL';
     modal.querySelector('.modal h3').textContent = 'Edit Link';
-    
-    // Clear previous button handlers by cloning
+
     const actions = modal.querySelector('.modal-actions');
     const newActions = actions.cloneNode(true);
     actions.parentNode.replaceChild(newActions, actions);
-    
+
     const confirmBtn = modal.querySelector('.modal-btn.confirm');
     confirmBtn.textContent = 'Save';
     confirmBtn.onclick = () => {
@@ -2085,10 +2083,10 @@ function editLink(idx, url) {
         saveState();
         renderSidebar();
     };
-    
+
     const cancelBtn = modal.querySelector('.modal-btn.cancel');
     cancelBtn.onclick = () => { titleEl.value = ''; closeModal(); };
-    
+
     modal.classList.add('open');
     setTimeout(() => titleEl.focus(), 50);
 }
@@ -2114,16 +2112,14 @@ function openNewNodeModal() {
     const titleEl = document.getElementById('modal-title');
     const confirmBtn = modal.querySelector('.modal-btn.confirm');
     const cancelBtn = modal.querySelector('.modal-btn.cancel');
-    
+
     modal.querySelector('.modal h3').textContent = 'New Concept';
     titleEl.value = '';
     titleEl.placeholder = 'Concept name';
     confirmBtn.textContent = 'Create';
-    
-    // Restore default onclick handlers
     confirmBtn.onclick = confirmNewNode;
     cancelBtn.onclick = () => { titleEl.value = ''; closeModal(); };
-    
+
     modal.classList.add('open');
     setTimeout(() => titleEl.focus(), 50);
 }
@@ -2134,21 +2130,19 @@ function confirmNewNode() {
     if (!title) return;
     const wrap = document.getElementById('canvas-wrap');
     const id = 'n_' + Date.now();
-    // place in visible center
     const cx = (wrap.clientWidth  / 2 - transform.x) / transform.scale;
     const cy = (wrap.clientHeight / 2 - transform.y) / transform.scale;
     const jitter = () => (Math.random() - 0.5) * 120;
     currentMapData().nodes[id] = {
-        id, title, desc: '', tags: '', 
+        id, title, desc: '', tags: '',
         x: cx + jitter(), y: cy + jitter(), links: [], files: [],
-        // Styling properties
-        width: 150, height: 60,  // size
-        borderWidth: 2, borderDash: 'solid', borderColor: '', fillColor: '',  // border & fill
-        shape: 'rectangle',  // shape customization
-        fontSize: 13, fontFamily: 'Roboto', fontColor: '', fontBold: false, fontItalic: false, fontUnderline: false,  // title font
-        titleHighlight: '',  // title highlighting
-        descFontSize: 10, descFontFamily: 'Roboto', descFontColor: '', descFontBold: false, descFontItalic: false, descFontUnderline: false,  // description font
-        descHighlight: ''  // description highlighting
+        width: 150, height: 60,
+        borderWidth: 2, borderDash: 'solid', borderColor: '', fillColor: '',
+        shape: 'rectangle',
+        fontSize: 13, fontFamily: 'Roboto', fontColor: '', fontBold: false, fontItalic: false, fontUnderline: false,
+        titleHighlight: '',
+        descFontSize: 10, descFontFamily: 'Roboto', descFontColor: '', descFontBold: false, descFontItalic: false, descFontUnderline: false,
+        descHighlight: ''
     };
     document.getElementById('modal-title').value = '';
     closeModal();
@@ -2174,25 +2168,16 @@ function deleteSelectedNode() {
 function copyNode(nodeId) {
     const node = currentMapData().nodes[nodeId];
     if (!node) return;
-    clipboard = {
-        type: 'node',
-        data: JSON.parse(JSON.stringify(node))  // deep copy
-    };
+    clipboard = { type: 'node', data: JSON.parse(JSON.stringify(node)) };
 }
 
 function pasteNode() {
     if (!clipboard.data || clipboard.type !== 'node') return;
-    
-    const wrap = document.getElementById('canvas-wrap');
     const newId = 'n_' + Date.now();
-    const offset = 80;  // offset from original
-    
-    // Create new node with copied properties
     const newNode = JSON.parse(JSON.stringify(clipboard.data));
     newNode.id = newId;
-    newNode.x += offset;
-    newNode.y += offset;
-    
+    newNode.x += 80;
+    newNode.y += 80;
     currentMapData().nodes[newId] = newNode;
     saveState();
     renderAll();
@@ -2202,39 +2187,19 @@ function pasteNode() {
 function copyEdge(edgeId) {
     const edge = currentMapData().edges.find(e => e.id === edgeId);
     if (!edge) return;
-    clipboard = {
-        type: 'edge',
-        data: JSON.parse(JSON.stringify(edge))  // deep copy
-    };
+    clipboard = { type: 'edge', data: JSON.parse(JSON.stringify(edge)) };
 }
 
 function pasteEdge() {
     if (!clipboard.data || clipboard.type !== 'edge') return;
     if (!selectedNodeId) return;
-    
     const edge = clipboard.data;
-    
-    // Try to paste: if we have source and target nodes, create new edge
-    // For simplicity, paste from the clipboard source to the currently selected node
     const map = currentMapData();
-    const sourceNode = map.nodes[edge.from];
-    
-    if (sourceNode) {
-        // Create new edge from copied source to currently selected node
-        const newEdge = JSON.parse(JSON.stringify(edge));
-        newEdge.id = 'e_' + Date.now();
-        newEdge.from = edge.from;
-        newEdge.to = selectedNodeId;
-        map.edges.push(newEdge);
-    } else {
-        // If source doesn't exist, just create edge between selected node and itself (or skip)
-        const newEdge = JSON.parse(JSON.stringify(edge));
-        newEdge.id = 'e_' + Date.now();
-        newEdge.from = selectedNodeId;
-        newEdge.to = selectedNodeId;
-        map.edges.push(newEdge);
-    }
-    
+    const newEdge = JSON.parse(JSON.stringify(edge));
+    newEdge.id = 'e_' + Date.now();
+    newEdge.from = edge.from;
+    newEdge.to = selectedNodeId;
+    map.edges.push(newEdge);
     saveState();
     redrawEdges();
 }
@@ -2277,11 +2242,10 @@ function deleteMap(id, e) {
 //  EXPORT / IMPORT
 // ─────────────────────────────────────────────
 function exportJSON() {
-    // Export the full state so ALL maps are preserved in map-data.json
     const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'map-data.json';   // always this filename — just commit it to your repo
+    a.download = 'map-data.json';
     a.click();
 }
 function importJSON(event) {
@@ -2301,7 +2265,7 @@ function importJSON(event) {
 }
 
 // ─────────────────────────────────────────────
-//  THEME TOGGLE (mirrors materials.html)
+//  THEME TOGGLE
 // ─────────────────────────────────────────────
 const themeToggle = document.getElementById('theme-toggle');
 const sunIcon = document.getElementById('sun-icon');
@@ -2327,24 +2291,23 @@ themeToggle.addEventListener('click', () => {
 //  KEYBOARD SHORTCUTS
 // ─────────────────────────────────────────────
 document.addEventListener('keydown', e => {
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-    
-    // Copy (Ctrl+C or Cmd+C)
+    // ── FIX: ignore shortcuts when typing in any input, textarea, OR contenteditable element ──
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+
     if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
         e.preventDefault();
         if (selectedNodeId) copyNode(selectedNodeId);
         else if (selectedEdgeId) copyEdge(selectedEdgeId);
         return;
     }
-    
-    // Paste (Ctrl+V or Cmd+V)
+
     if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
         e.preventDefault();
         if (clipboard.type === 'node') pasteNode();
         else if (clipboard.type === 'edge' && selectedNodeId) pasteEdge();
         return;
     }
-    
+
     if (e.key === 'Delete' || e.key === 'Backspace') deleteSelectedNode();
     if (e.key === 'Escape') { setMode('select'); selectNode(null); }
     if (e.key === 'n' || e.key === 'N') openNewNodeModal();
@@ -2352,6 +2315,7 @@ document.addEventListener('keydown', e => {
     if (e.key === ' ') { e.preventDefault(); setMode('pan'); }
 });
 document.addEventListener('keyup', e => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
     if (e.key === ' ' && mode === 'pan') setMode('select');
 });
 
@@ -2372,7 +2336,6 @@ function escAttr(s) { return escHtml(s); }
     setTimeout(fitView, 50);
 })();
 
-// re-render edges on window resize
 window.addEventListener('resize', redrawEdges);
 </script>
 </body>
