@@ -1,3 +1,3 @@
 # Personal Website Repository
 
-Visit: [](pranavmehta.com)
+Visit: [pranavmehta.com](pranavmehta.com)
