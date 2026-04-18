@@ -269,6 +269,71 @@
             background: #218838;
         }
 
+        /* ── Dupe Dropdown ── */
+        .dupe-badge-container {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            z-index: 20;
+        }
+        .dupe-icon {
+            font-size: 11px;
+            color: var(--primary-color);
+            opacity: 0.4;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .dupe-icon:hover {
+            opacity: 1;
+            background: rgba(0, 123, 255, 0.1);
+        }
+        .dupe-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            min-width: 160px;
+            max-height: 200px;
+            overflow-y: auto;
+            flex-direction: column;
+            padding: 4px 0;
+            z-index: 100;
+        }
+        .dark-mode .dupe-dropdown {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+        }
+        .dupe-dropdown.show {
+            display: flex;
+        }
+        .dupe-dropdown-item {
+            padding: 6px 12px;
+            font-size: 11px;
+            color: var(--text-color);
+            cursor: pointer;
+            text-align: left;
+            border: none;
+            background: none;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: 'Roboto', sans-serif;
+            transition: background 0.15s;
+        }
+        .dupe-dropdown-item:hover {
+            background: var(--bg-color);
+            color: var(--primary-color);
+        }
+
         /* ── Resize handles ── */
         .resize-handle {
             position: absolute;
@@ -713,6 +778,16 @@
                 <i class="fas fa-project-diagram"></i> Open Sub-Map
             </button>
         </div>
+        
+        <div class="sidebar-section" style="background: rgba(0,123,255,0.05); padding: 10px; border-radius: 8px; border: 1px dashed var(--primary-color);">
+            <div class="sidebar-label" style="color: var(--primary-color);">Global Linking</div>
+            <div id="dupe-controls">
+                </div>
+            <div id="sb-duplicates-section" class="hidden" style="margin-top: 10px;">
+                <div class="sidebar-label">Also appears in:</div>
+                <div id="sb-duplicates-list" class="connections-list"></div>
+            </div>
+        </div>
 
         <div class="sidebar-section">
             <div class="sidebar-label">Box styling</div>
@@ -1068,6 +1143,8 @@ let state = {
 };
 
 let clipboard = { type: null, data: null };
+// NEW STATE VARIABLES FOR DUPLICATE LINKING
+let dupeMasterId = null;
 
 async function loadState() {
     try {
@@ -1111,6 +1188,56 @@ function createDefaultMap() {
 }
 
 function currentMapData() { return state.maps[state.currentMap]; }
+
+// ─────────────────────────────────────────────
+//  DUPLICATE FEATURE LOGIC
+// ─────────────────────────────────────────────
+function startDupeLinking() {
+    dupeMasterId = selectedNodeId;
+    const node = currentMapData().nodes[dupeMasterId];
+    if (!node.linkId) node.linkId = 'L_' + Date.now();
+    renderSidebar();
+
+    const ind = document.getElementById('mode-indicator');
+    ind.textContent = 'Global Link started. Select a concept in any map to link.';
+    ind.classList.remove('hidden');
+}
+
+function confirmDupeLink() {
+    const masterNode = findNodeGlobally(dupeMasterId);
+    const targetNode = currentMapData().nodes[selectedNodeId];
+    if (masterNode && targetNode) {
+        targetNode.linkId = masterNode.linkId;
+        saveState();
+        alert(`Successfully linked "${targetNode.title}" to "${masterNode.title}".`);
+    }
+    cancelDupeLink();
+    renderAll();
+}
+
+function cancelDupeLink() {
+    dupeMasterId = null;
+    document.getElementById('mode-indicator').classList.add('hidden');
+    renderSidebar();
+}
+
+function findNodeGlobally(id) {
+    for (let mId in state.maps) if (state.maps[mId].nodes[id]) return state.maps[mId].nodes[id];
+    return null;
+}
+
+function getDuplicateLocations(linkId) {
+    if (!linkId) return [];
+    const locs = [];
+    Object.entries(state.maps).forEach(([mId, map]) => {
+        if (mId === state.currentMap) return; // don't list current map
+        if (Object.values(map.nodes).some(n => n.linkId === linkId)) {
+            locs.push({id: mId, name: map.name});
+        }
+    });
+    return locs;
+}
+
 
 // ─────────────────────────────────────────────
 //  CANVAS / TRANSFORM
@@ -1163,7 +1290,13 @@ function setMode(m) {
     });
     const ind = document.getElementById('mode-indicator');
     const wrap = document.getElementById('canvas-wrap');
-    if (m === 'link') {
+    
+    if (dupeMasterId) {
+        // Preserve indicator if linking is active
+        ind.textContent = 'Global Link started. Select a concept in any map to link.';
+        ind.classList.remove('hidden');
+        wrap.style.cursor = 'default';
+    } else if (m === 'link') {
         ind.textContent = 'Link mode — click source, then target';
         ind.classList.remove('hidden');
         wrap.style.cursor = 'crosshair';
@@ -1175,6 +1308,7 @@ function setMode(m) {
         ind.classList.add('hidden');
         wrap.style.cursor = 'default';
     }
+    
     document.querySelectorAll('.node').forEach(el => {
         el.classList.remove('link-source','link-target');
     });
@@ -1274,8 +1408,17 @@ function renderNodes() {
             descContent = `<span style="background-color:${node.descHighlight};padding:2px 4px;border-radius:2px;display:inline-block">${descContent}</span>`;
         }
 
+        // Add duplicate icon badge with dropdown if linked
+        const dupeBadgeHTML = node.linkId ? `
+            <div class="dupe-badge-container">
+                <div class="dupe-icon" title="Globally Linked Concept (Click to view)"><i class="fas fa-clone"></i></div>
+                <div class="dupe-dropdown"></div>
+            </div>
+        ` : '';
+
         el.innerHTML = `
             ${node.subMapId ? `<div class="node-submap-badge" title="Open Sub-Map"><i class="fas fa-sitemap"></i></div>` : ''}
+            ${dupeBadgeHTML}
             <div class="node-title" data-field="title" style="${titleStyle};cursor:text">${titleContent}</div>
             <p class="node-desc" data-field="desc" style="${descStyle}">${descContent}</p>
             ${tags.length ? `<div class="node-tags">${tags.map(t=>`<span class="node-tag" style="background:${borderColor}22;color:${borderColor}">${escHtml(t)}</span>`).join('')}</div>` : ''}
@@ -1286,6 +1429,67 @@ function renderNodes() {
             const descEl = el.querySelector('[data-field="desc"]');
             if (titleEl) titleEl.style.transform = 'rotate(-45deg)';
             if (descEl) descEl.style.transform = 'rotate(-45deg)';
+        }
+
+        // Duplicate Badge Interaction
+        if (node.linkId) {
+            const icon = el.querySelector('.dupe-icon');
+            const dropdown = el.querySelector('.dupe-dropdown');
+            
+            icon.addEventListener('mousedown', e => e.stopPropagation()); 
+            icon.addEventListener('click', e => {
+                e.stopPropagation(); 
+                
+                // Close all other dropdowns
+                document.querySelectorAll('.dupe-dropdown.show').forEach(d => {
+                    if (d !== dropdown) {
+                        d.classList.remove('show');
+                        const pNode = d.closest('.node');
+                        if (pNode && !pNode.classList.contains('region')) pNode.style.zIndex = 2;
+                    }
+                });
+                
+                const isShowing = dropdown.classList.contains('show');
+                if (!isShowing) {
+                    // Temporarily boost z-index so dropdown sits on top of everything
+                    document.querySelectorAll('.node').forEach(n => {
+                        if (!n.classList.contains('region')) n.style.zIndex = 2;
+                    });
+                    el.style.zIndex = 50;
+
+                    dropdown.innerHTML = '<div style="padding: 6px 12px; font-size: 10px; color: #888; text-transform: uppercase; font-weight: 700; border-bottom: 1px solid var(--border-color); margin-bottom: 4px;">Jump to map:</div>';
+                    const locs = getDuplicateLocations(node.linkId);
+                    
+                    if (locs.length === 0) {
+                         dropdown.innerHTML += '<div style="padding: 6px 12px; font-size: 11px;">No other instances found.</div>';
+                    } else {
+                        locs.forEach(loc => {
+                            const btn = document.createElement('button');
+                            btn.className = 'dupe-dropdown-item';
+                            btn.innerHTML = `<i class="fas fa-map-marker-alt" style="opacity:0.6; width: 14px;"></i> ${escHtml(loc.name)}`;
+                            btn.onclick = (ev) => {
+                                ev.stopPropagation();
+                                dropdown.classList.remove('show');
+                                switchMap(loc.id);
+                                // Highlight the target node in the destination map
+                                const targetNode = Object.values(state.maps[loc.id].nodes).find(n => n.linkId === node.linkId);
+                                if (targetNode) {
+                                    setTimeout(() => selectNode(targetNode.id), 50);
+                                }
+                            };
+                            dropdown.appendChild(btn);
+                        });
+                    }
+                    dropdown.classList.add('show');
+                } else {
+                    dropdown.classList.remove('show');
+                    el.style.zIndex = 2; // reset
+                }
+            });
+            
+            // Prevent dragging or clicking dropdown items from affecting node selection
+            dropdown.addEventListener('mousedown', e => e.stopPropagation());
+            dropdown.addEventListener('click', e => e.stopPropagation());
         }
 
         // Sub-Map Badge Interaction
@@ -1914,6 +2118,14 @@ function onNodeClick(e, nodeId) {
         }
         return;
     }
+    
+    // Handle duplicate confirm flow
+    if (mode === 'confirm-dupe') {
+        selectedNodeId = nodeId;
+        confirmDupeLink();
+        return;
+    }
+
     selectNode(nodeId);
 }
 
@@ -1930,7 +2142,7 @@ function selectNode(nodeId) {
 }
 
 function onNodeMouseDown(e, nodeId) {
-    if (mode === 'link' || mode === 'pan') return;
+    if (mode === 'link' || mode === 'pan' || mode === 'confirm-dupe') return;
     e.stopPropagation();
     const node = currentMapData().nodes[nodeId];
     const startX = e.clientX, startY = e.clientY;
@@ -1980,7 +2192,7 @@ function onNodeMouseDown(e, nodeId) {
 }
 
 function onNodeTouchStart(e, nodeId) {
-    if (mode === 'link') return;
+    if (mode === 'link' || mode === 'confirm-dupe') return;
     e.preventDefault();
     const touch = e.touches[0];
     const node = currentMapData().nodes[nodeId];
@@ -2098,6 +2310,78 @@ function renderSidebar() {
     document.getElementById('sb-desc-font-bold').classList.toggle('active', node.descFontBold);
     document.getElementById('sb-desc-font-italic').classList.toggle('active', node.descFontItalic);
     document.getElementById('sb-desc-font-underline').classList.toggle('active', node.descFontUnderline);
+
+    // --- DUPLICATE LINK UI ---
+    const dupeControls = document.getElementById('dupe-controls');
+    dupeControls.innerHTML = '';
+    
+    if (dupeMasterId) {
+        if (dupeMasterId === selectedNodeId) {
+            // Looking at the source
+            const btnCancel = document.createElement('button');
+            btnCancel.className = 'btn-danger';
+            btnCancel.innerHTML = '<i class="fas fa-times"></i> Cancel Linking';
+            btnCancel.onclick = cancelDupeLink;
+            dupeControls.appendChild(btnCancel);
+        } else {
+            // Looking at a target
+            const masterNode = findNodeGlobally(dupeMasterId);
+            const btnConfirm = document.createElement('button');
+            btnConfirm.className = 'btn-primary';
+            btnConfirm.style.background = '#28a745';
+            btnConfirm.innerHTML = `<i class="fas fa-check"></i> Link to "${escHtml(masterNode ? masterNode.title : 'Concept')}"`;
+            btnConfirm.onclick = confirmDupeLink;
+            dupeControls.appendChild(btnConfirm);
+            
+            const btnCancel = document.createElement('button');
+            btnCancel.className = 'btn-danger';
+            btnCancel.textContent = 'Cancel Linking';
+            btnCancel.onclick = cancelDupeLink;
+            dupeControls.appendChild(btnCancel);
+        }
+    } else {
+        const btnStart = document.createElement('button');
+        btnStart.className = 'btn-primary';
+        btnStart.style.background = 'var(--text-color)';
+        btnStart.innerHTML = `<i class="fas fa-link"></i> ${node.linkId ? 'Link to another' : 'Start Global Link'}`;
+        btnStart.onclick = startDupeLinking;
+        dupeControls.appendChild(btnStart);
+
+        if (node.linkId) {
+            const btnRemove = document.createElement('button');
+            btnRemove.className = 'btn-danger';
+            btnRemove.style.marginTop = '4px';
+            btnRemove.style.padding = '4px';
+            btnRemove.style.fontSize = '11px';
+            btnRemove.innerHTML = 'Unlink globally';
+            btnRemove.onclick = () => { delete node.linkId; saveState(); renderAll(); renderSidebar(); };
+            dupeControls.appendChild(btnRemove);
+        }
+    }
+
+    // Render "Also Appears In" list in sidebar
+    const dupeList = document.getElementById('sb-duplicates-list');
+    const dupeSection = document.getElementById('sb-duplicates-section');
+    dupeList.innerHTML = '';
+    const locs = getDuplicateLocations(node.linkId);
+    if (locs.length > 0) {
+        dupeSection.classList.remove('hidden');
+        locs.forEach(loc => {
+            const chip = document.createElement('button');
+            chip.className = 'conn-chip';
+            chip.style.width = '100%';
+            chip.innerHTML = `<i class="fas fa-map-marker-alt" style="opacity:0.6"></i> ${escHtml(loc.name)}`;
+            chip.onclick = () => {
+                switchMap(loc.id);
+                const targetNode = Object.values(state.maps[loc.id].nodes).find(n => n.linkId === node.linkId);
+                if (targetNode) setTimeout(() => selectNode(targetNode.id), 50);
+            };
+            dupeList.appendChild(chip);
+        });
+    } else {
+        dupeSection.classList.add('hidden');
+    }
+    // --- END DUPLICATE LINK UI ---
 
     const ll = document.getElementById('sb-links');
     ll.innerHTML = '';
@@ -2507,7 +2791,11 @@ document.addEventListener('keydown', e => {
     }
 
     if (e.key === 'Delete' || e.key === 'Backspace') deleteSelectedNode();
-    if (e.key === 'Escape') { setMode('select'); selectNode(null); }
+    if (e.key === 'Escape') { 
+        setMode('select'); 
+        selectNode(null); 
+        if (dupeMasterId) cancelDupeLink();
+    }
     if (e.key === 'n' || e.key === 'N') openNewNodeModal();
     if (e.key === 'l' || e.key === 'L') setMode('link');
     if (e.key === ' ') { e.preventDefault(); setMode('pan'); }
@@ -2515,6 +2803,17 @@ document.addEventListener('keydown', e => {
 document.addEventListener('keyup', e => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
     if (e.key === ' ' && mode === 'pan') setMode('select');
+});
+
+// Hide dropdowns if clicking outside
+document.addEventListener('click', e => {
+    if (!e.target.closest('.dupe-badge-container')) {
+        document.querySelectorAll('.dupe-dropdown.show').forEach(d => {
+            d.classList.remove('show');
+            const nodeEl = d.closest('.node');
+            if (nodeEl && !nodeEl.classList.contains('region')) nodeEl.style.zIndex = 2;
+        });
+    }
 });
 
 // ─────────────────────────────────────────────
