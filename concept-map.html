@@ -92,7 +92,7 @@
 
         /* ── Toolbar ── */
         .toolbar {
-            width: 200px;
+            width: 220px;
             flex-shrink: 0;
             background: var(--toolbar-bg);
             border-right: 1px solid var(--border-color);
@@ -135,7 +135,29 @@
         }
         .tool-btn i { width: 14px; text-align: center; }
         .tool-divider { border: none; border-top: 1px solid var(--border-color); margin: 0.4rem 0; }
+        
+        /* ── Sidebar Folders & Maps ── */
         .map-list { display: flex; flex-direction: column; gap: 4px; }
+        
+        .folder-item { margin-bottom: 2px; }
+        .folder-header {
+            display: flex; align-items: center; gap: 6px; padding: 5px 8px;
+            border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: 700;
+            color: var(--text-color); transition: background 0.15s;
+            border: 1px solid transparent;
+        }
+        .folder-header:hover { background: var(--bg-color); }
+        .folder-item.drag-over > .folder-header { border-color: var(--primary-color); background: rgba(0,123,255,0.1); }
+        .folder-toggle { width: 14px; text-align: center; cursor: pointer; opacity: 0.6; }
+        .folder-toggle:hover { opacity: 1; color: var(--primary-color); }
+        .folder-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; user-select: none; }
+        .folder-children { 
+            display: flex; flex-direction: column; gap: 2px; padding-left: 14px; 
+            margin-top: 2px; border-left: 1px dashed var(--border-color); margin-left: 14px; 
+        }
+        .folder-root { display: flex; flex-direction: column; gap: 2px; min-height: 40px; }
+        .folder-root.drag-over { background: rgba(0,123,255,0.05); border-radius: 6px; }
+        
         .map-item {
             display: flex;
             align-items: center;
@@ -146,21 +168,20 @@
             cursor: pointer;
             transition: background 0.15s;
         }
+        .map-item[draggable="true"] { cursor: grab; }
+        .map-item[draggable="true"]:active { cursor: grabbing; }
         .map-item:hover { background: var(--bg-color); }
         .map-item.active { background: rgba(0,123,255,0.1); color: var(--primary-color); font-weight: 700; }
-        .map-item-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .map-item-del {
-            opacity: 0;
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: #888;
-            font-size: 11px;
-            padding: 2px 4px;
-            border-radius: 4px;
+        .map-item-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; user-select: none; }
+        
+        .map-item-del, .map-item-edit {
+            opacity: 0; background: none; border: none; cursor: pointer; color: #888; 
+            font-size: 10px; padding: 2px 4px; border-radius: 4px;
         }
-        .map-item:hover .map-item-del { opacity: 1; }
+        .map-item:hover .map-item-del, .map-item:hover .map-item-edit,
+        .folder-header:hover .map-item-del, .folder-header:hover .map-item-edit { opacity: 1; }
         .map-item-del:hover { color: #e74c3c; }
+        .map-item-edit:hover { color: var(--primary-color); }
 
         /* ── Canvas ── */
         .canvas-wrap {
@@ -700,19 +721,8 @@
         <button class="tool-btn active" id="btn-select" onclick="setMode('select')">
             <i class="fas fa-mouse-pointer"></i> Select
         </button>
-        <button class="tool-btn" id="btn-link" onclick="setMode('link')">
-            <i class="fas fa-link"></i> Link
-        </button>
         <button class="tool-btn" id="btn-pan" onclick="setMode('pan')">
             <i class="fas fa-hand-paper"></i> Pan
-        </button>
-        <hr class="tool-divider">
-        <div class="toolbar-title">Actions</div>
-        <button class="tool-btn" onclick="openNewNodeModal()">
-            <i class="fas fa-plus-circle"></i> Add Concept
-        </button>
-        <button class="tool-btn" onclick="addRegion()">
-            <i class="fas fa-vector-square"></i> Add Region
         </button>
         <button class="tool-btn" onclick="fitView()">
             <i class="fas fa-expand"></i> Fit View
@@ -725,11 +735,28 @@
             <input type="file" accept=".json" id="import-input" style="display:none" onchange="importJSON(event)">
         </label>
         <hr class="tool-divider">
+        <div class="toolbar-title">Actions</div>
+        <button class="tool-btn" onclick="openNewNodeModal()">
+            <i class="fas fa-plus-circle"></i> Add Concept
+        </button>
+        <button class="tool-btn" onclick="addRegion()">
+            <i class="fas fa-vector-square"></i> Add Region
+        </button>
+        <button class="tool-btn" id="btn-link" onclick="setMode('link')">
+            <i class="fas fa-link"></i> Link
+        </button>
+        <hr class="tool-divider">
         <div class="toolbar-title">Maps</div>
         <div class="map-list" id="map-list"></div>
-        <button class="tool-btn" onclick="newMap()" style="margin-top:4px">
-            <i class="fas fa-folder-plus"></i> New Map
-        </button>
+        <div style="display: flex; gap: 4px; margin-top: 6px;">
+            <button class="tool-btn" onclick="newMap()" style="flex:1; justify-content:center; padding: 6px;">
+                <i class="fas fa-file-medical"></i> Map
+            </button>
+            <button class="tool-btn" onclick="newFolder()" style="flex:1; justify-content:center; padding: 6px;">
+                <i class="fas fa-folder-plus"></i> Folder
+            </button>
+        </div>
+        <p style="font-size:10px;color:#888;text-align:center;margin-top:8px">Drag maps to group in folders</p>
     </aside>
 
     <div class="canvas-wrap" id="canvas-wrap">
@@ -1139,6 +1166,7 @@ const COLORS = {
 
 let state = {
     maps: {},
+    folders: {}, // NEW: Folders for organizing
     currentMap: null,
 };
 
@@ -1152,6 +1180,7 @@ async function loadState() {
         if (draft) {
             state = JSON.parse(draft);
             if (!state.maps) state.maps = {};
+            if (!state.folders) state.folders = {};
         }
     } catch(e) {}
 
@@ -1162,9 +1191,11 @@ async function loadState() {
                 const data = await res.json();
                 if (data.maps) {
                     state = data;
+                    if (!state.folders) state.folders = {};
                 } else if (data.nodes && data.edges) {
                     const id = 'map_' + Date.now();
                     state.maps = {};
+                    state.folders = {};
                     state.maps[id] = { name: data.name || 'My Concepts', nodes: data.nodes, edges: data.edges };
                     state.currentMap = id;
                 }
@@ -1173,6 +1204,7 @@ async function loadState() {
     }
 
     if (!state.maps || Object.keys(state.maps).length === 0) createDefaultMap();
+    if (!state.folders) state.folders = {};
     if (!state.currentMap || !state.maps[state.currentMap])
         state.currentMap = Object.keys(state.maps)[0];
 }
@@ -1184,6 +1216,7 @@ function saveState() {
 function createDefaultMap() {
     const id = 'map_' + Date.now();
     state.maps[id] = { name: 'My Concepts', nodes: {}, edges: [] };
+    state.folders = {};
     state.currentMap = id;
 }
 
@@ -1693,20 +1726,178 @@ function startEditingField(nodeId, field, element) {
     element.addEventListener('keydown', keyHandler);
 }
 
+// ─────────────────────────────────────────────
+//  SIDEBAR FOLDERS AND MAP EDITING
+// ─────────────────────────────────────────────
+
+function newFolder() {
+    const id = 'f_' + Date.now();
+    state.folders[id] = { id, name: 'New Folder', expanded: true };
+    saveState();
+    renderMapList();
+}
+
+function toggleFolder(id, e) {
+    e.stopPropagation();
+    state.folders[id].expanded = !state.folders[id].expanded;
+    saveState();
+    renderMapList();
+}
+
+function deleteFolder(id, e) {
+    e.stopPropagation();
+    if (!confirm('Delete folder? Maps inside will be moved to the root list.')) return;
+    Object.values(state.maps).forEach(m => { if(m.folderId === id) delete m.folderId; });
+    delete state.folders[id];
+    saveState();
+    renderMapList();
+}
+
+function editMapName(id, e) {
+    if (e) e.stopPropagation();
+    const map = state.maps[id];
+    const el = document.getElementById('map-label-' + id);
+    if (!el) return;
+    
+    el.contentEditable = true;
+    el.focus();
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+
+    const save = () => {
+        el.contentEditable = false;
+        const newName = el.textContent.trim();
+        if (newName && newName !== map.name) {
+            map.name = newName;
+            saveState();
+            renderBreadcrumbs();
+        } else {
+            el.textContent = map.name;
+        }
+    };
+
+    el.onblur = save;
+    el.onkeydown = (ev) => {
+        if (ev.key === 'Enter') { ev.preventDefault(); save(); }
+        if (ev.key === 'Escape') { el.textContent = map.name; el.contentEditable = false; }
+    };
+}
+
+function editFolderName(id, e) {
+    if (e) e.stopPropagation();
+    const f = state.folders[id];
+    const el = document.getElementById('folder-label-' + id);
+    if (!el) return;
+    
+    el.contentEditable = true;
+    el.focus();
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+
+    const save = () => {
+        el.contentEditable = false;
+        const newName = el.textContent.trim();
+        if (newName && newName !== f.name) {
+            f.name = newName;
+            saveState();
+        } else {
+            el.textContent = f.name;
+        }
+    };
+
+    el.onblur = save;
+    el.onkeydown = (ev) => {
+        if (ev.key === 'Enter') { ev.preventDefault(); save(); }
+        if (ev.key === 'Escape') { el.textContent = f.name; el.contentEditable = false; }
+    };
+}
+
 function renderMapList() {
     const list = document.getElementById('map-list');
     list.innerHTML = '';
-    Object.entries(state.maps).forEach(([id, map]) => {
+
+    if (!state.folders) state.folders = {};
+
+    const createMapEl = (id, map) => {
         const item = document.createElement('div');
         item.className = 'map-item' + (id === state.currentMap ? ' active' : '');
+        item.draggable = true;
+        item.ondragstart = (e) => { e.dataTransfer.setData('text/plain', JSON.stringify({type:'map', id})); };
         item.innerHTML = `
-            <i class="fas fa-circle" style="font-size:8px;opacity:0.5"></i>
-            <span class="map-item-label">${escHtml(map.name)}</span>
-            <button class="map-item-del" onclick="deleteMap('${id}',event)" title="Delete map"><i class="fas fa-times"></i></button>
+            <i class="fas fa-file-alt" style="font-size:10px;opacity:0.5"></i>
+            <span class="map-item-label" id="map-label-${id}" ondblclick="editMapName('${id}', event)">${escHtml(map.name)}</span>
+            <button class="map-item-edit" onclick="editMapName('${id}', event)" title="Rename map"><i class="fas fa-pencil-alt"></i></button>
+            <button class="map-item-del" onclick="deleteMap('${id}', event)" title="Delete map"><i class="fas fa-times"></i></button>
         `;
         item.addEventListener('click', () => switchMap(id));
-        list.appendChild(item);
+        return item;
+    };
+
+    const rootEl = document.createElement('div');
+    rootEl.className = 'folder-root';
+    rootEl.ondragover = e => { e.preventDefault(); rootEl.classList.add('drag-over'); };
+    rootEl.ondragleave = e => { rootEl.classList.remove('drag-over'); };
+    rootEl.ondrop = e => {
+        e.preventDefault();
+        rootEl.classList.remove('drag-over');
+        try {
+            const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+            if (data.type === 'map') {
+                delete state.maps[data.id].folderId;
+                saveState(); renderMapList();
+            }
+        } catch(err) {}
+    };
+
+    // Render folders
+    Object.values(state.folders).forEach(f => {
+        const folderEl = document.createElement('div');
+        folderEl.className = 'folder-item';
+        folderEl.ondragover = e => { e.preventDefault(); folderEl.classList.add('drag-over'); };
+        folderEl.ondragleave = e => { folderEl.classList.remove('drag-over'); };
+        folderEl.ondrop = e => {
+            e.preventDefault();
+            folderEl.classList.remove('drag-over');
+            try {
+                const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+                if (data.type === 'map') {
+                    state.maps[data.id].folderId = f.id;
+                    f.expanded = true; // Auto-expand
+                    saveState(); renderMapList();
+                }
+            } catch(err){}
+        };
+
+        const header = document.createElement('div');
+        header.className = 'folder-header';
+        header.innerHTML = `
+            <i class="fas fa-chevron-${f.expanded ? 'down' : 'right'} folder-toggle" onclick="toggleFolder('${f.id}', event)"></i>
+            <span class="folder-label" id="folder-label-${f.id}" ondblclick="editFolderName('${f.id}', event)">${escHtml(f.name)}</span>
+            <button class="map-item-edit" onclick="editFolderName('${f.id}', event)" title="Rename folder"><i class="fas fa-pencil-alt"></i></button>
+            <button class="map-item-del" onclick="deleteFolder('${f.id}', event)" title="Delete folder"><i class="fas fa-times"></i></button>
+        `;
+        folderEl.appendChild(header);
+
+        if (f.expanded) {
+            const children = document.createElement('div');
+            children.className = 'folder-children';
+            Object.entries(state.maps).forEach(([mId, m]) => {
+                if (m.folderId === f.id) children.appendChild(createMapEl(mId, m));
+            });
+            folderEl.appendChild(children);
+        }
+        list.appendChild(folderEl);
     });
+
+    // Render root maps
+    Object.entries(state.maps).forEach(([mId, m]) => {
+        if (!m.folderId) rootEl.appendChild(createMapEl(mId, m));
+    });
+    list.appendChild(rootEl);
 }
 
 // ─────────────────────────────────────────────
@@ -2637,6 +2828,7 @@ function pasteEdge() {
 //  MAPS & NESTED MAPS
 // ─────────────────────────────────────────────
 function switchMap(id) {
+    if (state.currentMap === id) return; // Prevent unnecessary re-render if already active
     state.currentMap = id;
     selectedNodeId = null;
     saveState();
@@ -2681,11 +2873,13 @@ function toggleSubMap() {
     
     // Otherwise, create a new sub-map
     const newMapId = 'map_' + Date.now();
+    const currentMapFolder = state.maps[state.currentMap].folderId; // inherit parent folder
     state.maps[newMapId] = { 
         name: node.title || 'Sub-Map', 
         nodes: {}, 
         edges: [],
-        parentMapId: state.currentMap // Critical for the breadcrumb trail
+        parentMapId: state.currentMap, // Critical for the breadcrumb trail
+        folderId: currentMapFolder
     };
     node.subMapId = newMapId;
     saveState();
