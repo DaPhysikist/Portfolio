@@ -150,7 +150,7 @@
         .folder-item.drag-over > .folder-header { border-color: var(--primary-color); background: rgba(0,123,255,0.1); }
         .folder-toggle { width: 14px; text-align: center; cursor: pointer; opacity: 0.6; }
         .folder-toggle:hover { opacity: 1; color: var(--primary-color); }
-        .folder-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; user-select: none; }
+        .folder-label { flex: 1; min-width: 0; overflow-wrap: anywhere; overflow: hidden; text-overflow: ellipsis; white-space: normal; user-select: none; }
         .folder-children { 
             display: flex; flex-direction: column; gap: 2px; padding-left: 14px; 
             margin-top: 2px; border-left: 1px dashed var(--border-color); margin-left: 14px; 
@@ -167,12 +167,13 @@
             font-size: 12px;
             cursor: pointer;
             transition: background 0.15s;
+            min-height: 32px;
         }
         .map-item[draggable="true"] { cursor: grab; }
         .map-item[draggable="true"]:active { cursor: grabbing; }
         .map-item:hover { background: var(--bg-color); }
         .map-item.active { background: rgba(0,123,255,0.1); color: var(--primary-color); font-weight: 700; }
-        .map-item-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; user-select: none; }
+        .map-item-label { flex: 1; min-width: 0; overflow-wrap: anywhere; white-space: normal; user-select: none; }
         
         .map-item-del, .map-item-edit {
             opacity: 0; background: none; border: none; cursor: pointer; color: #888; 
@@ -378,15 +379,42 @@
         .resize-handle[data-dir="w"]  { top: calc(50% - 4px); left: -5px; cursor: w-resize; }
 
         /* ── Sidebar ── */
+        .sidebar, .edge-sidebar, .toolbar {
+            position: relative; /* Required for absolute resizer positioning */
+        }
+        
         .sidebar {
-            width: 300px;
+            width: 320px;
+            min-width: 260px;
+            max-width: 600px;
             flex-shrink: 0;
             background: var(--sidebar-bg);
             border-left: 1px solid var(--border-color);
             padding: 1.25rem 1rem;
-            overflow-y: auto;
+            overflow: auto;
             z-index: 10;
             transition: transform 0.25s;
+        }
+
+        /* ── Custom Resizer Handle ── */
+        .resizer {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 6px;
+            cursor: ew-resize;
+            z-index: 100;
+            transition: background-color 0.2s;
+        }
+        .resizer-left {
+            left: -3px; /* Hangs slightly over the edge for easier grabbing */
+        }
+        .resizer-right {
+            right: -3px;
+        }
+        .resizer:hover, .resizer.dragging {
+            background-color: var(--primary-color);
+            opacity: 0.6;
         }
         .sidebar.hidden { display: none; }
         .sidebar h2 { font-size: 16px; margin: 0 0 1rem; font-weight: 700; }
@@ -1167,6 +1195,8 @@ const COLORS = {
 let state = {
     maps: {},
     folders: {}, // NEW: Folders for organizing
+    folderOrder: [],
+    mapOrder: [],
     currentMap: null,
 };
 
@@ -1205,6 +1235,7 @@ async function loadState() {
 
     if (!state.maps || Object.keys(state.maps).length === 0) createDefaultMap();
     if (!state.folders) state.folders = {};
+    ensureOrderArrays();
     if (!state.currentMap || !state.maps[state.currentMap])
         state.currentMap = Object.keys(state.maps)[0];
 }
@@ -1213,10 +1244,36 @@ function saveState() {
     localStorage.setItem('cm_state', JSON.stringify(state));
 }
 
+function ensureOrderArrays() {
+    if (!Array.isArray(state.folderOrder)) state.folderOrder = Object.keys(state.folders);
+    else state.folderOrder = state.folderOrder.filter(id => state.folders[id]).concat(Object.keys(state.folders).filter(id => !state.folderOrder.includes(id)));
+
+    if (!Array.isArray(state.mapOrder)) state.mapOrder = Object.keys(state.maps);
+    else state.mapOrder = state.mapOrder.filter(id => state.maps[id]).concat(Object.keys(state.maps).filter(id => !state.mapOrder.includes(id)));
+}
+
+function reorderMap(mapId, beforeId) {
+    const currentIndex = state.mapOrder.indexOf(mapId);
+    if (currentIndex !== -1) state.mapOrder.splice(currentIndex, 1);
+    const insertAt = beforeId ? state.mapOrder.indexOf(beforeId) : state.mapOrder.length;
+    if (insertAt === -1 || insertAt === state.mapOrder.length) state.mapOrder.push(mapId);
+    else state.mapOrder.splice(insertAt, 0, mapId);
+}
+
+function reorderFolder(folderId, beforeId) {
+    const currentIndex = state.folderOrder.indexOf(folderId);
+    if (currentIndex !== -1) state.folderOrder.splice(currentIndex, 1);
+    const insertAt = beforeId ? state.folderOrder.indexOf(beforeId) : state.folderOrder.length;
+    if (insertAt === -1 || insertAt === state.folderOrder.length) state.folderOrder.push(folderId);
+    else state.folderOrder.splice(insertAt, 0, folderId);
+}
+
 function createDefaultMap() {
     const id = 'map_' + Date.now();
     state.maps[id] = { name: 'My Concepts', nodes: {}, edges: [] };
     state.folders = {};
+    state.folderOrder = [];
+    state.mapOrder = [id];
     state.currentMap = id;
 }
 
@@ -1593,6 +1650,51 @@ function renderNodes() {
 // ─────────────────────────────────────────────
 //  RESIZE
 // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+function makeResizable(elementId, isRightSide) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+
+    const resizer = document.createElement('div');
+    resizer.className = 'resizer ' + (isRightSide ? 'resizer-left' : 'resizer-right');
+    el.appendChild(resizer);
+
+    let isResizing = false;
+    let startX, startWidth;
+
+    resizer.addEventListener('mousedown', function(e) {
+        isResizing = true;
+        startX = e.clientX;
+        startWidth = el.offsetWidth;
+        document.body.style.cursor = 'ew-resize';
+        resizer.classList.add('dragging');
+        e.preventDefault(); // Prevent accidental text selection while dragging
+    });
+
+    window.addEventListener('mousemove', function(e) {
+        if (!isResizing) return;
+        
+        // If it's on the right, dragging left (negative dx) INCREASES width
+        // If it's on the left, dragging right (positive dx) INCREASES width
+        const dx = e.clientX - startX;
+        const newWidth = isRightSide ? (startWidth - dx) : (startWidth + dx);
+        
+        // Enforce min/max widths directly in JS to prevent UI breakage
+        if (newWidth >= 200 && newWidth <= 800) {
+            el.style.width = newWidth + 'px';
+            redrawEdges(); // Keep SVG lines aligned with the canvas shift
+        }
+    });
+
+    window.addEventListener('mouseup', function(e) {
+        if (isResizing) {
+            isResizing = false;
+            document.body.style.cursor = '';
+            resizer.classList.remove('dragging');
+        }
+    });
+}
+
 function startResize(e, nodeId, dir) {
     const node = currentMapData().nodes[nodeId];
     const el = document.getElementById('node-' + nodeId);
@@ -1733,6 +1835,7 @@ function startEditingField(nodeId, field, element) {
 function newFolder() {
     const id = 'f_' + Date.now();
     state.folders[id] = { id, name: 'New Folder', expanded: true };
+    state.folderOrder.push(id);
     saveState();
     renderMapList();
 }
@@ -1749,6 +1852,7 @@ function deleteFolder(id, e) {
     if (!confirm('Delete folder? Maps inside will be moved to the root list.')) return;
     Object.values(state.maps).forEach(m => { if(m.folderId === id) delete m.folderId; });
     delete state.folders[id];
+    state.folderOrder = state.folderOrder.filter(fid => fid !== id);
     saveState();
     renderMapList();
 }
@@ -1821,12 +1925,29 @@ function renderMapList() {
     list.innerHTML = '';
 
     if (!state.folders) state.folders = {};
+    ensureOrderArrays();
 
     const createMapEl = (id, map) => {
         const item = document.createElement('div');
         item.className = 'map-item' + (id === state.currentMap ? ' active' : '');
         item.draggable = true;
+        item.dataset.mapId = id;
         item.ondragstart = (e) => { e.dataTransfer.setData('text/plain', JSON.stringify({type:'map', id})); };
+        item.ondragover = e => { e.preventDefault(); item.classList.add('drag-over'); };
+        item.ondragleave = e => { item.classList.remove('drag-over'); };
+        item.ondrop = e => {
+            e.preventDefault();
+            item.classList.remove('drag-over');
+            try {
+                const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+                if (data.type === 'map' && data.id !== id) {
+                    const targetMap = state.maps[id];
+                    state.maps[data.id].folderId = targetMap.folderId;
+                    reorderMap(data.id, id);
+                    saveState(); renderMapList();
+                }
+            } catch(err) {}
+        };
         item.innerHTML = `
             <i class="fas fa-file-alt" style="font-size:10px;opacity:0.5"></i>
             <span class="map-item-label" id="map-label-${id}" ondblclick="editMapName('${id}', event)">${escHtml(map.name)}</span>
@@ -1839,6 +1960,7 @@ function renderMapList() {
 
     const rootEl = document.createElement('div');
     rootEl.className = 'folder-root';
+    rootEl.draggable = false;
     rootEl.ondragover = e => { e.preventDefault(); rootEl.classList.add('drag-over'); };
     rootEl.ondragleave = e => { rootEl.classList.remove('drag-over'); };
     rootEl.ondrop = e => {
@@ -1850,13 +1972,22 @@ function renderMapList() {
                 delete state.maps[data.id].folderId;
                 saveState(); renderMapList();
             }
+            if (data.type === 'folder') {
+                reorderFolder(data.id, null);
+                saveState(); renderMapList();
+            }
         } catch(err) {}
     };
 
-    // Render folders
-    Object.values(state.folders).forEach(f => {
+    // Render folders in ordered sequence
+    state.folderOrder.forEach(folderId => {
+        const f = state.folders[folderId];
+        if (!f) return;
         const folderEl = document.createElement('div');
         folderEl.className = 'folder-item';
+        folderEl.draggable = true;
+        folderEl.dataset.folderId = f.id;
+        folderEl.ondragstart = (e) => { e.dataTransfer.setData('text/plain', JSON.stringify({type:'folder', id:f.id})); };
         folderEl.ondragover = e => { e.preventDefault(); folderEl.classList.add('drag-over'); };
         folderEl.ondragleave = e => { folderEl.classList.remove('drag-over'); };
         folderEl.ondrop = e => {
@@ -1866,7 +1997,11 @@ function renderMapList() {
                 const data = JSON.parse(e.dataTransfer.getData('text/plain'));
                 if (data.type === 'map') {
                     state.maps[data.id].folderId = f.id;
-                    f.expanded = true; // Auto-expand
+                    f.expanded = true; // Auto-expand when receiving a map
+                    saveState(); renderMapList();
+                }
+                if (data.type === 'folder' && data.id !== f.id) {
+                    reorderFolder(data.id, f.id);
                     saveState(); renderMapList();
                 }
             } catch(err){}
@@ -1885,17 +2020,19 @@ function renderMapList() {
         if (f.expanded) {
             const children = document.createElement('div');
             children.className = 'folder-children';
-            Object.entries(state.maps).forEach(([mId, m]) => {
-                if (m.folderId === f.id) children.appendChild(createMapEl(mId, m));
+            state.mapOrder.forEach(mId => {
+                const m = state.maps[mId];
+                if (m && m.folderId === f.id) children.appendChild(createMapEl(mId, m));
             });
             folderEl.appendChild(children);
         }
         list.appendChild(folderEl);
     });
 
-    // Render root maps
-    Object.entries(state.maps).forEach(([mId, m]) => {
-        if (!m.folderId) rootEl.appendChild(createMapEl(mId, m));
+    // Render root maps in ordered sequence
+    state.mapOrder.forEach(mId => {
+        const m = state.maps[mId];
+        if (m && !m.folderId) rootEl.appendChild(createMapEl(mId, m));
     });
     list.appendChild(rootEl);
 }
@@ -2847,8 +2984,10 @@ function confirmNewMap() {
     if (!name) return;
     const id = 'map_' + Date.now();
     state.maps[id] = { name, nodes: {}, edges: [] };
+    state.mapOrder.push(id);
     document.getElementById('modal-map-name').value = '';
     document.getElementById('modal-map').classList.remove('open');
+    saveState();
     switchMap(id);
 }
 
@@ -2857,6 +2996,7 @@ function deleteMap(id, e) {
     if (Object.keys(state.maps).length <= 1) return alert('You need at least one map.');
     if (!confirm('Delete this map?')) return;
     delete state.maps[id];
+    state.mapOrder = state.mapOrder.filter(mid => mid !== id);
     if (state.currentMap === id) state.currentMap = Object.keys(state.maps)[0];
     saveState(); renderAll();
 }
@@ -3025,6 +3165,15 @@ function escAttr(s) { return escHtml(s); }
     await loadState();
     renderAll();
     setTimeout(fitView, 50);
+
+    makeResizable('sidebar', true);
+    makeResizable('edge-sidebar', true);
+    
+    const toolbar = document.querySelector('.toolbar');
+    if (toolbar) {
+        toolbar.id = 'toolbar';
+        makeResizable('toolbar', false); 
+    }
 })();
 
 window.addEventListener('resize', redrawEdges);
