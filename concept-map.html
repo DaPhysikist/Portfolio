@@ -2918,12 +2918,13 @@ function deleteSelectedNode() {
 }
 
 // ─────────────────────────────────────────────
-//  COPY / PASTE
+//  COPY / PASTE / CUT
 // ─────────────────────────────────────────────
 function copyNode(nodeId) {
     const node = currentMapData().nodes[nodeId];
     if (!node) return;
-    clipboard = { type: 'node', data: JSON.parse(JSON.stringify(node)) };
+    // Save the node data and tag it with the map it originated from
+    clipboard = { type: 'node', data: JSON.parse(JSON.stringify(node)), sourceMap: state.currentMap };
 }
 
 function pasteNode() {
@@ -2931,8 +2932,18 @@ function pasteNode() {
     const newId = 'n_' + Date.now();
     const newNode = JSON.parse(JSON.stringify(clipboard.data));
     newNode.id = newId;
-    newNode.x += 80;
-    newNode.y += 80;
+    
+    // If pasting in the same map, offset it so it doesn't overlap perfectly
+    if (clipboard.sourceMap === state.currentMap) {
+        newNode.x += 40;
+        newNode.y += 40;
+    } else {
+        // If pasting in a DIFFERENT map, drop it dead center of the current screen view
+        const wrap = document.getElementById('canvas-wrap');
+        newNode.x = (wrap.clientWidth / 2 - transform.x) / transform.scale;
+        newNode.y = (wrap.clientHeight / 2 - transform.y) / transform.scale;
+    }
+
     // Don't copy subMapIds across copy/paste to avoid circular map references
     delete newNode.subMapId; 
     currentMapData().nodes[newId] = newNode;
@@ -2944,7 +2955,7 @@ function pasteNode() {
 function copyEdge(edgeId) {
     const edge = currentMapData().edges.find(e => e.id === edgeId);
     if (!edge) return;
-    clipboard = { type: 'edge', data: JSON.parse(JSON.stringify(edge)) };
+    clipboard = { type: 'edge', data: JSON.parse(JSON.stringify(edge)), sourceMap: state.currentMap };
 }
 
 function pasteEdge() {
@@ -2952,10 +2963,17 @@ function pasteEdge() {
     if (!selectedNodeId) return;
     const edge = clipboard.data;
     const map = currentMapData();
+    
+    // Safety guard: Cross-map edge pasting breaks if the source concept isn't in this map
+    if (!map.nodes[edge.from]) {
+        alert('Cannot paste this connector here because its original source concept does not exist in this map.');
+        return;
+    }
+
     const newEdge = JSON.parse(JSON.stringify(edge));
     newEdge.id = 'e_' + Date.now();
     newEdge.from = edge.from;
-    newEdge.to = selectedNodeId;
+    newEdge.to = selectedNodeId; // Pastes to the currently selected node
     map.edges.push(newEdge);
     saveState();
     redrawEdges();
@@ -3108,16 +3126,32 @@ themeToggle.addEventListener('click', () => {
 //  KEYBOARD SHORTCUTS
 // ─────────────────────────────────────────────
 document.addEventListener('keydown', e => {
+    // Ignore shortcuts if the user is typing in an input or text area
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
 
-    if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+    // Cut (Ctrl+X or Cmd+X)
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'x') {
+        e.preventDefault();
+        if (selectedNodeId) {
+            copyNode(selectedNodeId);
+            deleteSelectedNode(); // Removes it from current map
+        } else if (selectedEdgeId) {
+            copyEdge(selectedEdgeId);
+            deleteSelectedEdge();
+        }
+        return;
+    }
+
+    // Copy (Ctrl+C or Cmd+C)
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
         e.preventDefault();
         if (selectedNodeId) copyNode(selectedNodeId);
         else if (selectedEdgeId) copyEdge(selectedEdgeId);
         return;
     }
 
-    if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+    // Paste (Ctrl+V or Cmd+V)
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
         e.preventDefault();
         if (clipboard.type === 'node') pasteNode();
         else if (clipboard.type === 'edge' && selectedNodeId) pasteEdge();
@@ -3125,15 +3159,18 @@ document.addEventListener('keydown', e => {
     }
 
     if (e.key === 'Delete' || e.key === 'Backspace') deleteSelectedNode();
+    
     if (e.key === 'Escape') { 
         setMode('select'); 
         selectNode(null); 
-        if (dupeMasterId) cancelDupeLink();
+        if (typeof cancelDupeLink === 'function' && dupeMasterId) cancelDupeLink();
     }
+    
     if (e.key === 'n' || e.key === 'N') openNewNodeModal();
     if (e.key === 'l' || e.key === 'L') setMode('link');
     if (e.key === ' ') { e.preventDefault(); setMode('pan'); }
 });
+
 document.addEventListener('keyup', e => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
     if (e.key === ' ' && mode === 'pan') setMode('select');
