@@ -3196,6 +3196,29 @@ function escHtml(s) {
 function escAttr(s) { return escHtml(s); }
 
 // ─────────────────────────────────────────────
+//  CROSS-TAB SYNCHRONIZATION
+// ─────────────────────────────────────────────
+window.addEventListener('storage', (e) => {
+    if (e.key === 'cm_state' && e.newValue) {
+        // Preserve this specific window's active map
+        const activeMapInThisTab = state.currentMap; 
+        
+        // Ingest the new state from the other tab
+        state = JSON.parse(e.newValue);
+        
+        // Re-apply the local active map (unless it was deleted)
+        if (state.maps[activeMapInThisTab]) {
+            state.currentMap = activeMapInThisTab;
+        } else {
+            state.currentMap = Object.keys(state.maps)[0];
+        }
+        
+        // Re-render the UI with the fresh data
+        renderAll();
+    }
+});
+
+// ─────────────────────────────────────────────
 //  INIT
 // ─────────────────────────────────────────────
 (async () => {
