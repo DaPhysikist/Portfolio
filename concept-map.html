@@ -9,10 +9,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-    <link rel="manifest" href="/site.webmanifest">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+    
+    <script src="https://www.desmos.com/api/v1.11/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6"></script>
 
     <style>
         :root {
@@ -147,7 +149,6 @@
             border: 1px solid transparent;
         }
         .folder-header:hover { background: var(--bg-color); }
-        .folder-item.drag-over > .folder-header { border-color: var(--primary-color); background: rgba(0,123,255,0.1); }
         .folder-toggle { width: 14px; text-align: center; cursor: pointer; opacity: 0.6; }
         .folder-toggle:hover { opacity: 1; color: var(--primary-color); }
         .folder-label { flex: 1; min-width: 0; overflow-wrap: anywhere; overflow: hidden; text-overflow: ellipsis; white-space: normal; user-select: none; }
@@ -156,7 +157,6 @@
             margin-top: 2px; border-left: 1px dashed var(--border-color); margin-left: 14px; 
         }
         .folder-root { display: flex; flex-direction: column; gap: 2px; min-height: 40px; }
-        .folder-root.drag-over { background: rgba(0,123,255,0.05); border-radius: 6px; }
         
         .map-item {
             display: flex;
@@ -166,7 +166,7 @@
             border-radius: 6px;
             font-size: 12px;
             cursor: pointer;
-            transition: background 0.15s;
+            transition: background 0.15s, box-shadow 0.1s;
             min-height: 32px;
         }
         .map-item[draggable="true"] { cursor: grab; }
@@ -183,6 +183,24 @@
         .folder-header:hover .map-item-del, .folder-header:hover .map-item-edit { opacity: 1; }
         .map-item-del:hover { color: #e74c3c; }
         .map-item-edit:hover { color: var(--primary-color); }
+
+        /* ── Drag & Drop States ── */
+        .map-item.drag-over-top, .folder-header.drag-over-top {
+            box-shadow: inset 0 2px 0 var(--primary-color);
+            background: rgba(0,123,255,0.05);
+        }
+        .map-item.drag-over-bottom, .folder-header.drag-over-bottom {
+            box-shadow: inset 0 -2px 0 var(--primary-color);
+            background: rgba(0,123,255,0.05);
+        }
+        .folder-header.drag-over-center {
+            border-color: var(--primary-color);
+            background: rgba(0,123,255,0.1);
+        }
+        .folder-children.drag-over-folder, .folder-root.drag-over-folder {
+            background: rgba(0,123,255,0.05);
+            border-radius: 6px;
+        }
 
         /* ── Canvas ── */
         .canvas-wrap {
@@ -218,6 +236,8 @@
         /* ── Node ── */
         .node {
             position: absolute;
+            display: flex;
+            flex-direction: column;
             background: var(--node-bg);
             border: 2px solid var(--node-border);
             border-radius: 12px;
@@ -238,25 +258,47 @@
         .node.link-target { border-color: #28a745; box-shadow: 0 0 0 3px rgba(40,167,69,0.25); }
         .node.link-source { border-color: #fd7e14; box-shadow: 0 0 0 3px rgba(253,126,20,0.25); }
         .node-title {
+            flex-shrink: 0;
             font-weight: 700;
             font-size: 13px;
-            margin: 0 0 2px;
+            margin: 0 0 4px;
             color: var(--primary-color);
         }
         .node-desc {
+            flex: 1;
+            overflow-y: auto;
+            pointer-events: auto;
+            white-space: normal;
+            word-wrap: break-word;
+            padding-right: 4px;
             font-size: 11px;
             color: #888;
             margin: 0;
-            overflow: hidden;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
         }
+        
+        /* Markdown Overrides */
+        .node-desc h1, .node-desc h2, .node-desc h3 { margin: 4px 0; font-size: 1.1em; color: var(--text-color); }
+        .node-desc p { margin: 4px 0; }
+        .node-desc ul, .node-desc ol { margin: 4px 0; padding-left: 16px; }
+        .node-desc blockquote { border-left: 2px solid var(--primary-color); margin: 4px 0; padding-left: 6px; color: #666; }
+        .node-desc pre { background: rgba(0,0,0,0.05); padding: 4px; border-radius: 4px; overflow-x: auto; font-family: monospace; }
+        .node-desc code { background: rgba(0,0,0,0.05); padding: 2px 4px; border-radius: 3px; font-family: monospace; font-size: 0.9em; }
+        .node-desc img { max-width: 100%; border-radius: 4px; }
+        .node-desc hr { border: none; border-top: 1px solid var(--border-color); margin: 8px 0; }
+        .node-desc::-webkit-scrollbar { width: 4px; }
+        .node-desc::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
+        
+        /* Table overrides */
+        .node-desc table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+        .node-desc th, .node-desc td { border: 1px solid var(--border-color); padding: 4px 6px; }
+        .node-desc th { background: rgba(0,0,0,0.05); font-weight: 700; color: var(--text-color); }
+
         .node-tags {
             display: flex;
             flex-wrap: wrap;
             gap: 3px;
             margin-top: 5px;
+            flex-shrink: 0;
         }
         .node-tag {
             font-size: 10px;
@@ -283,7 +325,7 @@
             font-size: 11px;
             cursor: pointer;
             box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-            z-index: 15; /* Keeps it above resize handles */
+            z-index: 15;
             transition: transform 0.15s, background 0.15s;
         }
         .node-submap-badge:hover {
@@ -368,7 +410,6 @@
             pointer-events: all;
         }
         .resize-handle:hover { background: var(--primary-color); }
-        /* Positions */
         .resize-handle[data-dir="nw"] { top: -5px; left: -5px; cursor: nw-resize; }
         .resize-handle[data-dir="n"]  { top: -5px; left: calc(50% - 4px); cursor: n-resize; }
         .resize-handle[data-dir="ne"] { top: -5px; right: -5px; cursor: ne-resize; }
@@ -380,7 +421,7 @@
 
         /* ── Sidebar ── */
         .sidebar, .edge-sidebar, .toolbar {
-            position: relative; /* Required for absolute resizer positioning */
+            position: relative;
         }
         
         .sidebar {
@@ -396,7 +437,6 @@
             transition: transform 0.25s;
         }
 
-        /* ── Custom Resizer Handle ── */
         .resizer {
             position: absolute;
             top: 0;
@@ -406,12 +446,8 @@
             z-index: 100;
             transition: background-color 0.2s;
         }
-        .resizer-left {
-            left: -3px; /* Hangs slightly over the edge for easier grabbing */
-        }
-        .resizer-right {
-            right: -3px;
-        }
+        .resizer-left { left: -3px; }
+        .resizer-right { right: -3px; }
         .resizer:hover, .resizer.dragging {
             background-color: var(--primary-color);
             opacity: 0.6;
@@ -462,7 +498,7 @@
             background: var(--bg-color);
             font-size: 12px;
         }
-        .file-entry span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .file-entry span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: normal; }
         .file-entry-del { background: none; border: none; cursor: pointer; color: #888; font-size: 11px; }
         .file-entry-del:hover { color: #e74c3c; }
         .connections-list { display: flex; flex-direction: column; gap: 5px; }
@@ -784,7 +820,7 @@
                 <i class="fas fa-folder-plus"></i> Folder
             </button>
         </div>
-        <p style="font-size:10px;color:#888;text-align:center;margin-top:8px">Drag maps to group in folders</p>
+        <p style="font-size:10px;color:#888;text-align:center;margin-top:8px">Drag to rearrange or group</p>
     </aside>
 
     <div class="canvas-wrap" id="canvas-wrap">
@@ -836,8 +872,7 @@
         
         <div class="sidebar-section" style="background: rgba(0,123,255,0.05); padding: 10px; border-radius: 8px; border: 1px dashed var(--primary-color);">
             <div class="sidebar-label" style="color: var(--primary-color);">Global Linking</div>
-            <div id="dupe-controls">
-                </div>
+            <div id="dupe-controls"></div>
             <div id="sb-duplicates-section" class="hidden" style="margin-top: 10px;">
                 <div class="sidebar-label">Also appears in:</div>
                 <div id="sb-duplicates-list" class="connections-list"></div>
@@ -933,8 +968,9 @@
         </div>
 
         <div class="sidebar-section">
-            <div class="sidebar-label">Description</div>
-            <textarea id="sb-desc" placeholder="Notes, definitions, details…" oninput="updateNode('desc', this.value)"></textarea>
+            <div class="sidebar-label">Description (Markdown Supported)</div>
+            <textarea id="sb-desc" placeholder="Markdown, LaTeX ($$), ![video](url), ![embed](url), ```desmos, ```circuit" oninput="updateNode('desc', this.value)"></textarea>
+            <p style="font-size:10px; color:#888; margin-top:4px;">Supports lists, tables, bold, $$math$$, desmos, circuit, and embed tags.</p>
         </div>
 
         <div class="sidebar-section">
@@ -1180,6 +1216,14 @@
 
 <script>
 // ─────────────────────────────────────────────
+//  HELPERS
+// ─────────────────────────────────────────────
+function escHtml(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(s) { return escHtml(s); }
+
+// ─────────────────────────────────────────────
 //  DATA MODEL
 // ─────────────────────────────────────────────
 const COLORS = {
@@ -1194,14 +1238,12 @@ const COLORS = {
 
 let state = {
     maps: {},
-    folders: {}, // NEW: Folders for organizing
+    folders: {}, 
     folderOrder: [],
     mapOrder: [],
     currentMap: null,
 };
 
-let clipboard = { type: null, data: null };
-// NEW STATE VARIABLES FOR DUPLICATE LINKING
 let dupeMasterId = null;
 
 async function loadState() {
@@ -1252,20 +1294,38 @@ function ensureOrderArrays() {
     else state.mapOrder = state.mapOrder.filter(id => state.maps[id]).concat(Object.keys(state.maps).filter(id => !state.mapOrder.includes(id)));
 }
 
-function reorderMap(mapId, beforeId) {
+function reorderMap(mapId, targetId, insertAfter = false) {
     const currentIndex = state.mapOrder.indexOf(mapId);
     if (currentIndex !== -1) state.mapOrder.splice(currentIndex, 1);
-    const insertAt = beforeId ? state.mapOrder.indexOf(beforeId) : state.mapOrder.length;
-    if (insertAt === -1 || insertAt === state.mapOrder.length) state.mapOrder.push(mapId);
-    else state.mapOrder.splice(insertAt, 0, mapId);
+    
+    if (!targetId) {
+        state.mapOrder.push(mapId);
+    } else {
+        let insertAt = state.mapOrder.indexOf(targetId);
+        if (insertAt !== -1) {
+            if (insertAfter) insertAt += 1;
+            state.mapOrder.splice(insertAt, 0, mapId);
+        } else {
+            state.mapOrder.push(mapId);
+        }
+    }
 }
 
-function reorderFolder(folderId, beforeId) {
+function reorderFolder(folderId, targetId, insertAfter = false) {
     const currentIndex = state.folderOrder.indexOf(folderId);
     if (currentIndex !== -1) state.folderOrder.splice(currentIndex, 1);
-    const insertAt = beforeId ? state.folderOrder.indexOf(beforeId) : state.folderOrder.length;
-    if (insertAt === -1 || insertAt === state.folderOrder.length) state.folderOrder.push(folderId);
-    else state.folderOrder.splice(insertAt, 0, folderId);
+    
+    if (!targetId) {
+        state.folderOrder.push(folderId);
+    } else {
+        let insertAt = state.folderOrder.indexOf(targetId);
+        if (insertAt !== -1) {
+            if (insertAfter) insertAt += 1;
+            state.folderOrder.splice(insertAt, 0, folderId);
+        } else {
+            state.folderOrder.push(folderId);
+        }
+    }
 }
 
 function createDefaultMap() {
@@ -1320,7 +1380,7 @@ function getDuplicateLocations(linkId) {
     if (!linkId) return [];
     const locs = [];
     Object.entries(state.maps).forEach(([mId, map]) => {
-        if (mId === state.currentMap) return; // don't list current map
+        if (mId === state.currentMap) return; 
         if (Object.values(map.nodes).some(n => n.linkId === linkId)) {
             locs.push({id: mId, name: map.name});
         }
@@ -1328,6 +1388,470 @@ function getDuplicateLocations(linkId) {
     return locs;
 }
 
+// ─────────────────────────────────────────────
+//  MARKDOWN PARSER & CUSTOM EXTENSIONS
+// ─────────────────────────────────────────────
+const desmosGraphs = [];
+const circuitDrawers = [];
+
+if (window.marked) {
+    const customRenderer = {
+        code(code, lang, escaped) {
+            if (lang === 'desmos') {
+                const id = `desmos-${Math.random().toString(36).substr(2, 9)}`;
+                desmosGraphs.push({ id, expressions: code.split('\n') });
+                return `<div id="${id}" class="desmos-embed" style="width: 100%; height: 300px; margin: 10px 0; border-radius: 4px; overflow: hidden; border: 1px solid var(--border-color);"></div>\n`;
+            }
+            if (lang && lang.startsWith('circuit')) {
+                const title = lang.substring(7).trim() || 'Circuit Schematic';
+                const id = `circuit-${Math.random().toString(36).substr(2, 9)}`;
+                circuitDrawers.push(id);
+                return `<div class="circuit-container" style="border: 1px solid var(--border-color); padding: 8px; border-radius: 4px; margin: 10px 0; background: #fff;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:6px; font-family:sans-serif;">
+                        <strong style="font-size:12px; color:var(--text-color);">${escHtml(title)}</strong>
+                        <div style="font-size:9px; color:#888; text-align:right; line-height:1.2;">
+                            <b>Space</b>: Rot | <b>R,C,L,D,Z,Q,F,E,O,I,V,J,U,B,G,P,A,M,N,W</b> | <b>X/Del</b>: Del
+                        </div>
+                    </div>
+                    <canvas id="${id}" width="400" height="250" style="background:#fcfcfc; border:1px solid #ccc; cursor:crosshair; width: 100%;"></canvas>
+                </div>\n`;
+            }
+            return false; // Fallback to default
+        },
+        link(href, title, text) {
+            if (href.includes('diagrams.net') || href.includes('draw.io')) {
+                let embedUrl = href.replace('calc.html', 'index.html');
+                return `<div class="drawio-embed" style="position:relative; padding-bottom:60%; height:0; overflow:hidden; margin: 10px 0; border: 1px solid var(--border-color); border-radius: 4px;">
+                    <iframe src="${embedUrl}&embed=1" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allowfullscreen></iframe>
+                </div>\n`;
+            }
+            return false; // Fallback
+        }
+    };
+    marked.use({ renderer: customRenderer });
+}
+
+function renderMarkdown(text) {
+    if (!text) return '(click to add description)';
+    let html = text;
+    
+    html = html.replace(/!\[video\]\((.*?)\)/gi, '<video controls style="max-width:100%; margin:4px 0;"><source src="$1"></video>');
+    html = html.replace(/!\[audio\]\((.*?)\)/gi, '<audio controls style="max-width:100%; margin:4px 0;"><source src="$1"></audio>');
+    html = html.replace(/!\[(?:embed|pdf|ppt)\]\((.*?)\)/gi, '<iframe src="$1" style="width:100%; height:150px; border:1px solid var(--border-color); border-radius:4px; margin:4px 0;" allowfullscreen></iframe>');
+
+    const mathBlocks = [];
+    
+    html = html.replace(/\$\$([\s\S]*?)\$\$/g, (match) => {
+        mathBlocks.push(match);
+        return `@@MATH_BLOCK_${mathBlocks.length - 1}@@`;
+    });
+    
+    html = html.replace(/\$([^$\n]+?)\$/g, (match) => {
+        mathBlocks.push(match);
+        return `@@MATH_BLOCK_${mathBlocks.length - 1}@@`;
+    });
+
+    if (window.marked) {
+        html = marked.parse(html);
+    }
+
+    mathBlocks.forEach((block, i) => {
+        html = html.replace(`@@MATH_BLOCK_${i}@@`, () => escHtml(block));
+    });
+
+    return html;
+}
+
+// Interactive Subsystem Init
+function initDesmosCalculators() {
+    desmosGraphs.forEach(graph => {
+        const element = document.getElementById(graph.id);
+        if (element && !element.dataset.initialized) {
+            element.dataset.initialized = 'true';
+            
+            const nodeEl = element.closest('.node');
+            if (nodeEl) {
+                const nodeId = nodeEl.id.replace('node-', '');
+                const node = currentMapData().nodes[nodeId];
+                let changed = false;
+                if (node.width < 400) { node.width = 400; changed = true; }
+                if (node.height < 450) { node.height = 450; changed = true; }
+                if (changed) {
+                    nodeEl.style.width = node.width + 'px';
+                    nodeEl.style.minHeight = node.height + 'px';
+                    redrawEdges();
+                }
+            }
+
+            element.addEventListener('mousedown', e => e.stopPropagation());
+            element.addEventListener('touchstart', e => e.stopPropagation(), {passive: false});
+
+            if (window.Desmos) {
+                const calculator = Desmos.GraphingCalculator(element, { expressionsPixelRatio: 2 });
+                graph.expressions.forEach((expr, i) => {
+                    if (expr.trim()) calculator.setExpression({ id: 'graph'+i, latex: expr });
+                });
+            }
+        }
+    });
+    desmosGraphs.length = 0;
+}
+
+function initCircuitDrawers() {
+    circuitDrawers.forEach(id => {
+        const canvas = document.getElementById(id);
+        if (!canvas || canvas.dataset.initialized) return;
+        canvas.dataset.initialized = 'true';
+
+        let elements = [];
+        const GRID = 20;
+        const snap = v => Math.round(v / GRID) * GRID;
+
+        // Persist and Load Circuit Data from the Node State
+        const nodeEl = canvas.closest('.node');
+        if (nodeEl) {
+            const nodeId = nodeEl.id.replace('node-', '');
+            const node = currentMapData().nodes[nodeId];
+            
+            // Auto-resize
+            let changed = false;
+            if (node.width < 450) { node.width = 450; changed = true; }
+            if (node.height < 380) { node.height = 380; changed = true; }
+            if (changed) {
+                nodeEl.style.width = node.width + 'px';
+                nodeEl.style.minHeight = node.height + 'px';
+                redrawEdges();
+            }
+
+            // Sync array
+            if (!node.circuitData) node.circuitData = {};
+            const canvases = Array.from(nodeEl.querySelectorAll('canvas[id^="circuit-"]'));
+            const cIdx = canvases.indexOf(canvas);
+            
+            if (!node.circuitData[cIdx]) node.circuitData[cIdx] = [];
+            elements = node.circuitData[cIdx]; // Direct reference binding
+        }
+        
+        const ctx = canvas.getContext('2d');
+        let currentTool = 'W';
+        let currentRot = 0;
+        let wireStart = null;
+        let mouseX = 0, mouseY = 0;
+        let isHovered = false;
+
+        drawCircuit();
+
+        canvas.addEventListener('mouseenter', () => isHovered = true);
+        canvas.addEventListener('mouseleave', () => { isHovered = false; wireStart = null; drawCircuit(); });
+
+        window.addEventListener('keydown', (e) => {
+            if (!isHovered) return; 
+            const key = e.key.toUpperCase();
+            
+            if (e.key === ' ') {
+                currentRot = (currentRot + 90) % 360;
+                e.preventDefault();
+                drawCircuit();
+            } else if (['R', 'C', 'L', 'D', 'Z', 'Q', 'F', 'E', 'O', 'I', 'V', 'J', 'U', 'B', 'G', 'P', 'A', 'M', 'N', 'W', 'X', '1', '2', '3', '4', '5', '6', '7'].includes(key)) {
+                currentTool = key;
+                wireStart = null;
+                drawCircuit();
+            } else if (e.key === 'Delete') {
+                currentTool = 'X';
+                wireStart = null;
+                drawCircuit();
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = snap((e.clientX - rect.left) * (canvas.width / rect.width));
+            mouseY = snap((e.clientY - rect.top) * (canvas.height / rect.height));
+            if (isHovered) drawCircuit(); 
+        });
+
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const x = snap((e.clientX - rect.left) * (canvas.width / rect.width));
+            const y = snap((e.clientY - rect.top) * (canvas.height / rect.height));
+            
+            if (currentTool === 'X') {
+                let minDist = Infinity;
+                let removeIdx = -1;
+                elements.forEach((el, idx) => {
+                    let dist;
+                    if (el.type === 'W') {
+                        const l2 = (el.x2-el.x1)**2 + (el.y2-el.y1)**2;
+                        if (l2 === 0) dist = Math.hypot(x-el.x1, y-el.y1);
+                        else {
+                            let t = ((x-el.x1)*(el.x2-el.x1) + (y-el.y1)*(el.y2-el.y1)) / l2;
+                            t = Math.max(0, Math.min(1, t));
+                            dist = Math.hypot(x - (el.x1 + t*(el.x2-el.x1)), y - (el.y1 + t*(el.y2-el.y1)));
+                        }
+                    } else {
+                        dist = Math.hypot(el.x - x, el.y - y);
+                    }
+                    if (dist < 15 && dist < minDist) { minDist = dist; removeIdx = idx; }
+                });
+                if (removeIdx > -1) elements.splice(removeIdx, 1);
+            } else if (currentTool === 'W') {
+                if (!wireStart) {
+                    wireStart = { x, y };
+                } else {
+                    if (wireStart.x !== x || wireStart.y !== y) {
+                        elements.push({ type: 'W', x1: wireStart.x, y1: wireStart.y, x2: x, y2: y });
+                    }
+                    wireStart = null; 
+                }
+            } else if (currentTool === 'M') {
+                const label = prompt("Enter IC Label (e.g. 555 Timer):");
+                if (label !== null) elements.push({ type: 'M', x, y, rot: currentRot, label });
+            } else if (currentTool === 'N') {
+                const label = prompt("Enter Net Label (e.g. VCC, DATA):");
+                if (label !== null) elements.push({ type: 'N', x, y, rot: currentRot, label });
+            } else {
+                elements.push({ type: currentTool, x, y, rot: currentRot });
+            }
+            
+            saveState(); 
+            drawCircuit();
+            e.stopPropagation(); 
+        });
+
+        canvas.addEventListener('mousedown', e => e.stopPropagation()); 
+
+        function drawShape(ctx, type, label) {
+            ctx.beginPath();
+            if (type === 'R') {
+                ctx.moveTo(-20, 0); ctx.lineTo(-15, 0);
+                ctx.lineTo(-10, -8); ctx.lineTo(0, 8);
+                ctx.lineTo(10, -8); ctx.lineTo(15, 0);
+                ctx.lineTo(20, 0); ctx.stroke();
+            } else if (type === 'C') {
+                ctx.moveTo(-15, 0); ctx.lineTo(-4, 0);
+                ctx.moveTo(15, 0); ctx.lineTo(4, 0);
+                ctx.moveTo(-4, -12); ctx.lineTo(-4, 12);
+                ctx.moveTo(4, -12); ctx.lineTo(4, 12);
+                ctx.stroke();
+            } else if (type === 'L') {
+                ctx.moveTo(-20, 0); ctx.lineTo(-15, 0);
+                for(let i=0; i<3; i++) ctx.arc(-10 + (i*10), 0, 5, Math.PI, 0);
+                ctx.lineTo(20, 0); ctx.stroke();
+            } else if (type === 'D') {
+                ctx.moveTo(-8, -8); ctx.lineTo(-8, 8); ctx.lineTo(8, 0); ctx.closePath();
+                ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(8, -8); ctx.lineTo(8, 8); ctx.stroke();
+            } else if (type === 'Z') {
+                // Zener Diode
+                ctx.moveTo(-8, -8); ctx.lineTo(-8, 8); ctx.lineTo(8, 0); ctx.closePath();
+                ctx.stroke();
+                ctx.beginPath(); 
+                ctx.moveTo(12, -8); ctx.lineTo(8, -8); ctx.lineTo(8, 8); ctx.lineTo(4, 8);
+                ctx.stroke();
+            } else if (type === 'Q') {
+                // BJT (NPN)
+                ctx.moveTo(-15, 0); ctx.lineTo(-5, 0); // Base
+                ctx.moveTo(-5, -10); ctx.lineTo(-5, 10); // Plate
+                ctx.moveTo(-5, -5); ctx.lineTo(5, -15); ctx.lineTo(5, -20); // Collector
+                ctx.moveTo(-5, 5); ctx.lineTo(5, 15); ctx.lineTo(5, 20); // Emitter
+                ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(5, 15); ctx.lineTo(2, 10); ctx.lineTo(0, 14); ctx.fill(); // Arrow
+            } else if (type === 'F') {
+                // MOSFET (N-Channel)
+                ctx.moveTo(-15, 0); ctx.lineTo(-5, 0); // Gate
+                ctx.moveTo(-5, -10); ctx.lineTo(-5, 10); // Gate Plate
+                ctx.moveTo(-2, -10); ctx.lineTo(-2, -3); // Drain Plate
+                ctx.moveTo(-2, -2); ctx.lineTo(-2, 2);   // Bulk Plate
+                ctx.moveTo(-2, 3); ctx.lineTo(-2, 10);   // Source Plate
+                ctx.moveTo(-2, -6); ctx.lineTo(10, -6); ctx.lineTo(10, -20); // Drain Wire
+                ctx.moveTo(-2, 6); ctx.lineTo(10, 6); ctx.lineTo(10, 20); // Source Wire
+                ctx.moveTo(-2, 0); ctx.lineTo(10, 0); ctx.lineTo(10, 6); // Bulk Wire
+                ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(2, 0); ctx.lineTo(6, -3); ctx.lineTo(6, 3); ctx.fill(); // Arrow IN
+            } else if (type === 'E') {
+                // MOSFET (P-Channel)
+                ctx.moveTo(-15, 0); ctx.lineTo(-10, 0); // Gate
+                ctx.stroke();
+                ctx.beginPath(); ctx.arc(-7.5, 0, 2.5, 0, 2*Math.PI); ctx.stroke(); // Gate bubble
+                ctx.beginPath();
+                ctx.moveTo(-5, -10); ctx.lineTo(-5, 10); // Gate Plate
+                ctx.moveTo(-2, -10); ctx.lineTo(-2, -3); // Drain Plate
+                ctx.moveTo(-2, -2); ctx.lineTo(-2, 2);   // Bulk Plate
+                ctx.moveTo(-2, 3); ctx.lineTo(-2, 10);   // Source Plate
+                ctx.moveTo(-2, -6); ctx.lineTo(10, -6); ctx.lineTo(10, -20); // Drain Wire
+                ctx.moveTo(-2, 6); ctx.lineTo(10, 6); ctx.lineTo(10, 20); // Source Wire
+                ctx.moveTo(-2, 0); ctx.lineTo(10, 0); ctx.lineTo(10, 6); // Bulk Wire
+                ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(2, -3); ctx.lineTo(2, 3); ctx.fill(); // Arrow OUT
+            } else if (type === 'O') {
+                ctx.arc(0, 0, 12, 0, 2*Math.PI); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-6, 0);
+                ctx.quadraticCurveTo(-3, -6, 0, 0);
+                ctx.quadraticCurveTo(3, 6, 6, 0); ctx.stroke();
+            } else if (type === 'I') {
+                ctx.arc(0, 0, 12, 0, 2*Math.PI); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, 7); ctx.lineTo(0, -7); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-3, -3); ctx.lineTo(0, -7); ctx.lineTo(3, -3); ctx.stroke();
+            } else if (type === 'V') {
+                ctx.arc(0, 0, 12, 0, 2*Math.PI); ctx.stroke();
+                ctx.font = '12px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText('+', 0, -5); ctx.fillText('-', 0, 5);
+            } else if (type === 'J') {
+                // Dependent Current Source
+                ctx.moveTo(0, -14); ctx.lineTo(14, 0); ctx.lineTo(0, 14); ctx.lineTo(-14, 0); ctx.closePath(); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, 7); ctx.lineTo(0, -7); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-3, -3); ctx.lineTo(0, -7); ctx.lineTo(3, -3); ctx.stroke();
+            } else if (type === 'U') {
+                // Dependent Voltage Source
+                ctx.moveTo(0, -14); ctx.lineTo(14, 0); ctx.lineTo(0, 14); ctx.lineTo(-14, 0); ctx.closePath(); ctx.stroke();
+                ctx.font = '12px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText('+', 0, -5); ctx.fillText('-', 0, 5);
+            } else if (type === 'B') {
+                ctx.moveTo(-6, -12); ctx.lineTo(-6, 12);
+                ctx.moveTo(-2, -6);  ctx.lineTo(-2, 6);
+                ctx.moveTo(2, -12);  ctx.lineTo(2, 12);
+                ctx.moveTo(6, -6);   ctx.lineTo(6, 6); ctx.stroke();
+            } else if (type === 'G') {
+                ctx.moveTo(0, -10); ctx.lineTo(0, 0);
+                ctx.moveTo(-10, 0); ctx.lineTo(10, 0);
+                ctx.moveTo(-6, 4); ctx.lineTo(6, 4);
+                ctx.moveTo(-2, 8); ctx.lineTo(2, 8); ctx.stroke();
+            } else if (type === 'P') {
+                ctx.moveTo(-15, -15); ctx.lineTo(15, 0); ctx.lineTo(-15, 15); ctx.closePath();
+                ctx.stroke();
+                ctx.font = '10px monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+                ctx.fillText('+', -12, -7); ctx.fillText('-', -12, 7);
+            } else if (type === 'A') {
+                ctx.moveTo(0, 10); ctx.lineTo(0, -5); ctx.lineTo(-8, -15);
+                ctx.moveTo(0, -5); ctx.lineTo(8, -15);
+                ctx.moveTo(0, -5); ctx.lineTo(0, -15); ctx.stroke();
+            } else if (type === 'M') {
+                ctx.font = '12px sans-serif';
+                const w = Math.max(40, ctx.measureText(label || 'IC').width + 16);
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(-w/2, -15, w, 30);
+                ctx.strokeRect(-w/2, -15, w, 30);
+                ctx.fillStyle = '#000';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(label || 'IC', 0, 0);
+            } else if (type === 'N') {
+                ctx.beginPath(); ctx.arc(0, 0, 2.5, 0, Math.PI*2); ctx.fill();
+                ctx.font = '12px monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+                ctx.fillText(label || 'NET', 4, -4);
+            } else if (type === '1') {
+                // AND
+                ctx.moveTo(-10, -10); ctx.lineTo(0, -10); ctx.arc(0, 0, 10, -Math.PI/2, Math.PI/2); ctx.lineTo(-10, 10); ctx.closePath(); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-15, -5); ctx.lineTo(-10, -5); ctx.moveTo(-15, 5); ctx.lineTo(-10, 5); ctx.moveTo(10, 0); ctx.lineTo(15, 0); ctx.stroke();
+            } else if (type === '2') {
+                // OR
+                ctx.moveTo(-10, -12); ctx.quadraticCurveTo(5, -12, 15, 0); ctx.quadraticCurveTo(5, 12, -10, 12); ctx.quadraticCurveTo(0, 0, -10, -12); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-15, -5); ctx.lineTo(-6, -5); ctx.moveTo(-15, 5); ctx.lineTo(-6, 5); ctx.moveTo(15, 0); ctx.lineTo(20, 0); ctx.stroke();
+            } else if (type === '3') {
+                // NOT
+                ctx.moveTo(-10, -10); ctx.lineTo(6, 0); ctx.lineTo(-10, 10); ctx.closePath(); ctx.stroke();
+                ctx.beginPath(); ctx.arc(9, 0, 3, 0, 2*Math.PI); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-15, 0); ctx.lineTo(-10, 0); ctx.moveTo(12, 0); ctx.lineTo(17, 0); ctx.stroke();
+            } else if (type === '4') {
+                // NAND
+                ctx.moveTo(-12, -10); ctx.lineTo(-2, -10); ctx.arc(-2, 0, 10, -Math.PI/2, Math.PI/2); ctx.lineTo(-12, 10); ctx.closePath(); ctx.stroke();
+                ctx.beginPath(); ctx.arc(11, 0, 3, 0, 2*Math.PI); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-17, -5); ctx.lineTo(-12, -5); ctx.moveTo(-17, 5); ctx.lineTo(-12, 5); ctx.moveTo(14, 0); ctx.lineTo(19, 0); ctx.stroke();
+            } else if (type === '5') {
+                // NOR
+                ctx.moveTo(-12, -12); ctx.quadraticCurveTo(3, -12, 13, 0); ctx.quadraticCurveTo(3, 12, -12, 12); ctx.quadraticCurveTo(-2, 0, -12, -12); ctx.stroke();
+                ctx.beginPath(); ctx.arc(16, 0, 3, 0, 2*Math.PI); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-17, -5); ctx.lineTo(-8, -5); ctx.moveTo(-17, 5); ctx.lineTo(-8, 5); ctx.moveTo(19, 0); ctx.lineTo(24, 0); ctx.stroke();
+            } else if (type === '6') {
+                // XOR
+                ctx.moveTo(-8, -12); ctx.quadraticCurveTo(7, -12, 17, 0); ctx.quadraticCurveTo(7, 12, -8, 12); ctx.quadraticCurveTo(2, 0, -8, -12); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-12, -12); ctx.quadraticCurveTo(-2, 0, -12, 12); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-17, -5); ctx.lineTo(-7, -5); ctx.moveTo(-17, 5); ctx.lineTo(-7, 5); ctx.moveTo(17, 0); ctx.lineTo(22, 0); ctx.stroke();
+            } else if (type === '7') {
+                // XNOR
+                ctx.moveTo(-10, -12); ctx.quadraticCurveTo(5, -12, 15, 0); ctx.quadraticCurveTo(5, 12, -10, 12); ctx.quadraticCurveTo(0, 0, -10, -12); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-14, -12); ctx.quadraticCurveTo(-4, 0, -14, 12); ctx.stroke();
+                ctx.beginPath(); ctx.arc(18, 0, 3, 0, 2*Math.PI); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-19, -5); ctx.lineTo(-9, -5); ctx.moveTo(-19, 5); ctx.lineTo(-9, 5); ctx.moveTo(21, 0); ctx.lineTo(26, 0); ctx.stroke();
+            }
+        }
+
+        function drawCircuit() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Background Dot Grid
+            ctx.fillStyle = '#ddd';
+            for (let x = 0; x <= canvas.width; x += GRID) {
+                for (let y = 0; y <= canvas.height; y += GRID) {
+                    ctx.fillRect(x - 1, y - 1, 2, 2);
+                }
+            }
+
+            // Draw Committed Elements
+            elements.forEach(el => {
+                ctx.strokeStyle = '#000'; ctx.fillStyle = '#000';
+                ctx.lineWidth = 2; ctx.lineJoin = 'round';
+
+                if (el.type === 'W') {
+                    ctx.beginPath();
+                    ctx.moveTo(el.x1, el.y1); ctx.lineTo(el.x2, el.y2); ctx.stroke();
+                    ctx.beginPath(); ctx.arc(el.x1, el.y1, 2.5, 0, Math.PI*2); ctx.fill();
+                    ctx.beginPath(); ctx.arc(el.x2, el.y2, 2.5, 0, Math.PI*2); ctx.fill();
+                } else {
+                    ctx.save();
+                    ctx.translate(el.x, el.y);
+                    ctx.rotate((el.rot || 0) * Math.PI / 180);
+                    drawShape(ctx, el.type, el.label);
+                    ctx.restore();
+                }
+            });
+
+            // Draw Live Preview
+            if (isHovered) {
+                ctx.globalAlpha = 0.5;
+                if (currentTool === 'W') {
+                    ctx.strokeStyle = 'var(--primary-color)'; ctx.fillStyle = 'var(--primary-color)';
+                    ctx.lineWidth = 2; 
+                    if (wireStart) {
+                        ctx.setLineDash([4, 4]);
+                        ctx.beginPath(); ctx.moveTo(wireStart.x, wireStart.y); ctx.lineTo(mouseX, mouseY); ctx.stroke();
+                        ctx.setLineDash([]);
+                    }
+                    ctx.beginPath(); ctx.arc(mouseX, mouseY, 3, 0, Math.PI*2); ctx.fill();
+                } else if (currentTool === 'X') {
+                    ctx.strokeStyle = 'red'; ctx.lineWidth = 1;
+                    ctx.beginPath(); ctx.arc(mouseX, mouseY, 8, 0, Math.PI*2);
+                    ctx.moveTo(mouseX-4, mouseY-4); ctx.lineTo(mouseX+4, mouseY+4);
+                    ctx.moveTo(mouseX+4, mouseY-4); ctx.lineTo(mouseX-4, mouseY+4); ctx.stroke();
+                } else {
+                    ctx.strokeStyle = 'var(--primary-color)'; ctx.fillStyle = 'var(--primary-color)';
+                    ctx.lineWidth = 2; ctx.lineJoin = 'round';
+                    ctx.save();
+                    ctx.translate(mouseX, mouseY);
+                    ctx.rotate(currentRot * Math.PI / 180);
+                    
+                    let previewLabel = undefined;
+                    if (currentTool === 'M') previewLabel = 'IC';
+                    if (currentTool === 'N') previewLabel = 'NET';
+                    
+                    drawShape(ctx, currentTool, previewLabel);
+                    ctx.restore();
+                }
+                ctx.globalAlpha = 1.0;
+            }
+
+            // Draw Status HUD
+            const mapTools = {
+                'F':'nMOS', 'E':'pMOS', '1':'AND', '2':'OR', '3':'NOT', '4':'NAND', '5':'NOR', '6':'XOR', '7':'XNOR',
+                'X':'Delete', 'Q':'BJT', 'J':'Dep I-Src', 'U':'Dep V-Src', 'Z':'Zener', 'N':'Label'
+            };
+            const toolName = mapTools[currentTool] || currentTool;
+            
+            ctx.fillStyle = 'var(--primary-color)'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'left';
+            ctx.fillText(`Active Tool: ${toolName} | Rot: ${currentRot}°`, 8, 20);
+        }
+    });
+    circuitDrawers.length = 0;
+}
 
 // ─────────────────────────────────────────────
 //  CANVAS / TRANSFORM
@@ -1382,7 +1906,6 @@ function setMode(m) {
     const wrap = document.getElementById('canvas-wrap');
     
     if (dupeMasterId) {
-        // Preserve indicator if linking is active
         ind.textContent = 'Global Link started. Select a concept in any map to link.';
         ind.classList.remove('hidden');
         wrap.style.cursor = 'default';
@@ -1493,12 +2016,11 @@ function renderNodes() {
         if (node.descFontItalic) descStyle += ';font-style:italic';
         if (node.descFontUnderline) descStyle += ';text-decoration:underline';
 
-        let descContent = escHtml(node.desc || '(click to add description)');
+        let descContent = renderMarkdown(node.desc);
         if (node.desc && node.descHighlight) {
-            descContent = `<span style="background-color:${node.descHighlight};padding:2px 4px;border-radius:2px;display:inline-block">${descContent}</span>`;
+            descContent = `<div style="background-color:${node.descHighlight};padding:2px 4px;border-radius:2px;height:100%;">${descContent}</div>`;
         }
 
-        // Add duplicate icon badge with dropdown if linked
         const dupeBadgeHTML = node.linkId ? `
             <div class="dupe-badge-container">
                 <div class="dupe-icon" title="Globally Linked Concept (Click to view)"><i class="fas fa-clone"></i></div>
@@ -1510,7 +2032,7 @@ function renderNodes() {
             ${node.subMapId ? `<div class="node-submap-badge" title="Open Sub-Map"><i class="fas fa-sitemap"></i></div>` : ''}
             ${dupeBadgeHTML}
             <div class="node-title" data-field="title" style="${titleStyle};cursor:text">${titleContent}</div>
-            <p class="node-desc" data-field="desc" style="${descStyle}">${descContent}</p>
+            <div class="node-desc" data-field="desc" style="${descStyle}">${descContent}</div>
             ${tags.length ? `<div class="node-tags">${tags.map(t=>`<span class="node-tag" style="background:${borderColor}22;color:${borderColor}">${escHtml(t)}</span>`).join('')}</div>` : ''}
         `;
 
@@ -1530,7 +2052,6 @@ function renderNodes() {
             icon.addEventListener('click', e => {
                 e.stopPropagation(); 
                 
-                // Close all other dropdowns
                 document.querySelectorAll('.dupe-dropdown.show').forEach(d => {
                     if (d !== dropdown) {
                         d.classList.remove('show');
@@ -1541,7 +2062,6 @@ function renderNodes() {
                 
                 const isShowing = dropdown.classList.contains('show');
                 if (!isShowing) {
-                    // Temporarily boost z-index so dropdown sits on top of everything
                     document.querySelectorAll('.node').forEach(n => {
                         if (!n.classList.contains('region')) n.style.zIndex = 2;
                     });
@@ -1561,7 +2081,6 @@ function renderNodes() {
                                 ev.stopPropagation();
                                 dropdown.classList.remove('show');
                                 switchMap(loc.id);
-                                // Highlight the target node in the destination map
                                 const targetNode = Object.values(state.maps[loc.id].nodes).find(n => n.linkId === node.linkId);
                                 if (targetNode) {
                                     setTimeout(() => selectNode(targetNode.id), 50);
@@ -1573,11 +2092,10 @@ function renderNodes() {
                     dropdown.classList.add('show');
                 } else {
                     dropdown.classList.remove('show');
-                    el.style.zIndex = 2; // reset
+                    el.style.zIndex = 2;
                 }
             });
             
-            // Prevent dragging or clicking dropdown items from affecting node selection
             dropdown.addEventListener('mousedown', e => e.stopPropagation());
             dropdown.addEventListener('click', e => e.stopPropagation());
         }
@@ -1594,7 +2112,6 @@ function renderNodes() {
             });
         }
 
-        // ── Resize handles (only on selected node) ──
         if (node.id === selectedNodeId) {
             ['nw','n','ne','e','se','s','sw','w'].forEach(dir => {
                 const handle = document.createElement('div');
@@ -1620,15 +2137,15 @@ function renderNodes() {
         }
 
         if (descEl) {
-            descEl.addEventListener('click', e => {
+            descEl.addEventListener('dblclick', e => {
                 e.stopPropagation();
                 startEditingField(node.id, 'desc', descEl);
             });
+            descEl.addEventListener('mousedown', e => e.stopPropagation()); 
         }
 
         el.addEventListener('mousedown', e => {
-            if (e.target === titleEl || e.target === descEl) return;
-            // Don't start drag if clicking a resize handle
+            if (e.target.closest('[data-field="title"]') || e.target.closest('[data-field="desc"]')) return;
             if (e.target.classList.contains('resize-handle')) return;
             onNodeMouseDown(e, node.id);
         });
@@ -1645,11 +2162,24 @@ function renderNodes() {
 
         layer.appendChild(el);
     });
+
+    if (window.renderMathInElement) {
+        renderMathInElement(layer, {
+            delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+        });
+    }
+
+    // Initialize Interactive Subsystems
+    initDesmosCalculators();
+    initCircuitDrawers();
 }
 
 // ─────────────────────────────────────────────
 //  RESIZE
-// ─────────────────────────────────────────────
 // ─────────────────────────────────────────────
 function makeResizable(elementId, isRightSide) {
     const el = document.getElementById(elementId);
@@ -1668,21 +2198,17 @@ function makeResizable(elementId, isRightSide) {
         startWidth = el.offsetWidth;
         document.body.style.cursor = 'ew-resize';
         resizer.classList.add('dragging');
-        e.preventDefault(); // Prevent accidental text selection while dragging
+        e.preventDefault(); 
     });
 
     window.addEventListener('mousemove', function(e) {
         if (!isResizing) return;
-        
-        // If it's on the right, dragging left (negative dx) INCREASES width
-        // If it's on the left, dragging right (positive dx) INCREASES width
         const dx = e.clientX - startX;
         const newWidth = isRightSide ? (startWidth - dx) : (startWidth + dx);
         
-        // Enforce min/max widths directly in JS to prevent UI breakage
         if (newWidth >= 200 && newWidth <= 800) {
             el.style.width = newWidth + 'px';
-            redrawEdges(); // Keep SVG lines aligned with the canvas shift
+            redrawEdges(); 
         }
     });
 
@@ -1716,19 +2242,13 @@ function startResize(e, nodeId, dir) {
         let newX = origX, newY = origY;
         let newW = origW, newH = origH;
 
-        // Horizontal
-        if (dir.includes('e')) {
-            newW = Math.max(MIN_W, origW + rawDx);
-        }
+        if (dir.includes('e')) newW = Math.max(MIN_W, origW + rawDx);
         if (dir.includes('w')) {
             const dw = Math.min(rawDx, origW - MIN_W);
             newW = origW - dw;
             newX = origX + dw;
         }
-        // Vertical
-        if (dir.includes('s')) {
-            newH = Math.max(MIN_H, origH + rawDy);
-        }
+        if (dir.includes('s')) newH = Math.max(MIN_H, origH + rawDy);
         if (dir.includes('n')) {
             const dh = Math.min(rawDy, origH - MIN_H);
             newH = origH - dh;
@@ -1745,7 +2265,6 @@ function startResize(e, nodeId, dir) {
         el.style.width = node.width + 'px';
         el.style.minHeight = node.height + 'px';
 
-        // Update sidebar inputs live
         const wInput = document.getElementById('sb-width');
         const hInput = document.getElementById('sb-height');
         if (wInput) wInput.value = node.width;
@@ -1758,7 +2277,7 @@ function startResize(e, nodeId, dir) {
         window.removeEventListener('mousemove', onMove);
         window.removeEventListener('mouseup', onUp);
         saveState();
-        renderNodes(); // re-render to reposition handles correctly
+        renderNodes();
     }
 
     window.addEventListener('mousemove', onMove);
@@ -1776,7 +2295,10 @@ function startEditingField(nodeId, field, element) {
     const node = currentMapData().nodes[nodeId];
     const currentValue = node[field] || '';
 
-    if (!currentValue && element.textContent.includes('(click to add')) {
+    if (field === 'desc') {
+        element.innerText = currentValue; 
+        element.style.whiteSpace = 'pre-wrap';
+    } else if (!currentValue && element.textContent.includes('(click to add')) {
         element.textContent = '';
     }
 
@@ -1793,9 +2315,10 @@ function startEditingField(nodeId, field, element) {
     sel.addRange(range);
 
     function finishEditing() {
-        const newValue = element.textContent.trim();
+        const newValue = field === 'desc' ? element.innerText : element.textContent.trim();
         element.contentEditable = false;
         element.style.outline = 'none';
+        element.style.whiteSpace = '';
         if (newValue !== currentValue) {
             updateNode(field, newValue);
         } else {
@@ -1810,19 +2333,22 @@ function startEditingField(nodeId, field, element) {
     element.addEventListener('blur', blurHandler);
 
     const keyHandler = e => {
-        if (e.key === 'Enter') {
+        if (e.key === 'Escape') {
+            element.contentEditable = false;
+            element.style.outline = 'none';
+            element.style.whiteSpace = '';
+            if (field === 'desc') {
+                renderNodes();
+            } else {
+                element.textContent = currentValue || '(click to add description)';
+            }
+            element.removeEventListener('keydown', keyHandler);
+            element.removeEventListener('blur', blurHandler);
+        } else if (e.key === 'Enter' && field === 'title') {
             e.preventDefault();
             finishEditing();
             element.removeEventListener('keydown', keyHandler);
-        } else if (e.key === 'Escape') {
-            element.contentEditable = false;
-            element.style.outline = 'none';
-            element.textContent = currentValue || '(click to add description)';
-            element.removeEventListener('keydown', keyHandler);
-            element.removeEventListener('blur', blurHandler);
         }
-        // All other keys (including Space) propagate normally inside the editable element.
-        // We stop them from bubbling to the document-level shortcut handler.
         e.stopPropagation();
     };
     element.addEventListener('keydown', keyHandler);
@@ -1831,7 +2357,6 @@ function startEditingField(nodeId, field, element) {
 // ─────────────────────────────────────────────
 //  SIDEBAR FOLDERS AND MAP EDITING
 // ─────────────────────────────────────────────
-
 function newFolder() {
     const id = 'f_' + Date.now();
     state.folders[id] = { id, name: 'New Folder', expanded: true };
@@ -1932,24 +2457,50 @@ function renderMapList() {
         item.className = 'map-item' + (id === state.currentMap ? ' active' : '');
         item.draggable = true;
         item.dataset.mapId = id;
-        item.ondragstart = (e) => { e.dataTransfer.setData('text/plain', JSON.stringify({type:'map', id})); };
-        item.ondragover = e => { e.preventDefault(); item.classList.add('drag-over'); };
-        item.ondragleave = e => { item.classList.remove('drag-over'); };
+        item.ondragstart = (e) => { 
+            e.stopPropagation(); 
+            e.dataTransfer.setData('text/plain', JSON.stringify({type:'map', id})); 
+        };
+        
+        item.ondragover = e => { 
+            e.preventDefault(); 
+            e.stopPropagation(); 
+            const rect = item.getBoundingClientRect();
+            if (e.clientY - rect.top < rect.height / 2) {
+                item.classList.add('drag-over-top');
+                item.classList.remove('drag-over-bottom');
+            } else {
+                item.classList.add('drag-over-bottom');
+                item.classList.remove('drag-over-top');
+            }
+        };
+        
+        item.ondragleave = e => { 
+            e.stopPropagation(); 
+            item.classList.remove('drag-over-top', 'drag-over-bottom'); 
+        };
+        
         item.ondrop = e => {
-            e.preventDefault();
-            item.classList.remove('drag-over');
+            e.preventDefault(); 
+            e.stopPropagation();
+            const rect = item.getBoundingClientRect();
+            const insertAfter = (e.clientY - rect.top) >= rect.height / 2;
+            item.classList.remove('drag-over-top', 'drag-over-bottom');
+            
             try {
                 const data = JSON.parse(e.dataTransfer.getData('text/plain'));
                 if (data.type === 'map' && data.id !== id) {
                     const targetMap = state.maps[id];
                     state.maps[data.id].folderId = targetMap.folderId;
-                    reorderMap(data.id, id);
-                    saveState(); renderMapList();
+                    reorderMap(data.id, id, insertAfter);
+                    saveState(); 
+                    renderMapList();
                 }
             } catch(err) {}
         };
+        
         item.innerHTML = `
-            <i class="fas fa-file-alt" style="font-size:10px;opacity:0.5"></i>
+            <i class="fas fa-file-alt" style="font-size:10px;opacity:0.5; pointer-events:none;"></i>
             <span class="map-item-label" id="map-label-${id}" ondblclick="editMapName('${id}', event)">${escHtml(map.name)}</span>
             <button class="map-item-edit" onclick="editMapName('${id}', event)" title="Rename map"><i class="fas fa-pencil-alt"></i></button>
             <button class="map-item-del" onclick="deleteMap('${id}', event)" title="Delete map"><i class="fas fa-times"></i></button>
@@ -1960,16 +2511,17 @@ function renderMapList() {
 
     const rootEl = document.createElement('div');
     rootEl.className = 'folder-root';
-    rootEl.draggable = false;
-    rootEl.ondragover = e => { e.preventDefault(); rootEl.classList.add('drag-over'); };
-    rootEl.ondragleave = e => { rootEl.classList.remove('drag-over'); };
+    rootEl.ondragover = e => { e.preventDefault(); e.stopPropagation(); rootEl.classList.add('drag-over-folder'); };
+    rootEl.ondragleave = e => { e.stopPropagation(); rootEl.classList.remove('drag-over-folder'); };
     rootEl.ondrop = e => {
-        e.preventDefault();
-        rootEl.classList.remove('drag-over');
+        e.preventDefault(); 
+        e.stopPropagation();
+        rootEl.classList.remove('drag-over-folder');
         try {
             const data = JSON.parse(e.dataTransfer.getData('text/plain'));
             if (data.type === 'map') {
                 delete state.maps[data.id].folderId;
+                reorderMap(data.id, null);
                 saveState(); renderMapList();
             }
             if (data.type === 'folder') {
@@ -1979,36 +2531,60 @@ function renderMapList() {
         } catch(err) {}
     };
 
-    // Render folders in ordered sequence
     state.folderOrder.forEach(folderId => {
         const f = state.folders[folderId];
         if (!f) return;
         const folderEl = document.createElement('div');
         folderEl.className = 'folder-item';
-        folderEl.draggable = true;
-        folderEl.dataset.folderId = f.id;
-        folderEl.ondragstart = (e) => { e.dataTransfer.setData('text/plain', JSON.stringify({type:'folder', id:f.id})); };
-        folderEl.ondragover = e => { e.preventDefault(); folderEl.classList.add('drag-over'); };
-        folderEl.ondragleave = e => { folderEl.classList.remove('drag-over'); };
-        folderEl.ondrop = e => {
-            e.preventDefault();
-            folderEl.classList.remove('drag-over');
+        
+        const header = document.createElement('div');
+        header.className = 'folder-header';
+        header.draggable = true;
+        header.ondragstart = (e) => { 
+            e.stopPropagation(); 
+            e.dataTransfer.setData('text/plain', JSON.stringify({type:'folder', id:f.id})); 
+        };
+        
+        header.ondragover = e => { 
+            e.preventDefault(); 
+            e.stopPropagation(); 
+            const rect = header.getBoundingClientRect();
+            const relY = e.clientY - rect.top;
+            header.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-center');
+            
+            if (relY < rect.height * 0.25) header.classList.add('drag-over-top');
+            else if (relY > rect.height * 0.75) header.classList.add('drag-over-bottom');
+            else header.classList.add('drag-over-center');
+        };
+        
+        header.ondragleave = e => { 
+            e.stopPropagation(); 
+            header.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-center'); 
+        };
+        
+        header.ondrop = e => {
+            e.preventDefault(); 
+            e.stopPropagation(); 
+            const rect = header.getBoundingClientRect();
+            const insertAfter = (e.clientY - rect.top) >= rect.height / 2;
+            header.classList.remove('drag-over-top', 'drag-over-bottom', 'drag-over-center');
+            
             try {
                 const data = JSON.parse(e.dataTransfer.getData('text/plain'));
                 if (data.type === 'map') {
                     state.maps[data.id].folderId = f.id;
-                    f.expanded = true; // Auto-expand when receiving a map
-                    saveState(); renderMapList();
+                    f.expanded = true;
+                    reorderMap(data.id, null); 
+                    saveState(); 
+                    renderMapList();
+                } else if (data.type === 'folder' && data.id !== f.id) {
+                    reorderFolder(data.id, f.id, insertAfter);
+                    saveState(); 
+                    renderMapList();
                 }
-                if (data.type === 'folder' && data.id !== f.id) {
-                    reorderFolder(data.id, f.id);
-                    saveState(); renderMapList();
-                }
-            } catch(err){}
+            } catch(err) {}
         };
-
-        const header = document.createElement('div');
-        header.className = 'folder-header';
+        
         header.innerHTML = `
             <i class="fas fa-chevron-${f.expanded ? 'down' : 'right'} folder-toggle" onclick="toggleFolder('${f.id}', event)"></i>
             <span class="folder-label" id="folder-label-${f.id}" ondblclick="editFolderName('${f.id}', event)">${escHtml(f.name)}</span>
@@ -2020,6 +2596,31 @@ function renderMapList() {
         if (f.expanded) {
             const children = document.createElement('div');
             children.className = 'folder-children';
+            
+            children.ondragover = e => { 
+                e.preventDefault(); 
+                e.stopPropagation(); 
+                children.classList.add('drag-over-folder'); 
+            };
+            children.ondragleave = e => { 
+                e.stopPropagation(); 
+                children.classList.remove('drag-over-folder'); 
+            };
+            children.ondrop = e => {
+                e.preventDefault(); 
+                e.stopPropagation(); 
+                children.classList.remove('drag-over-folder');
+                try {
+                    const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+                    if (data.type === 'map') {
+                        state.maps[data.id].folderId = f.id;
+                        reorderMap(data.id, null); 
+                        saveState(); 
+                        renderMapList();
+                    }
+                } catch(e) {}
+            };
+
             state.mapOrder.forEach(mId => {
                 const m = state.maps[mId];
                 if (m && m.folderId === f.id) children.appendChild(createMapEl(mId, m));
@@ -2029,7 +2630,6 @@ function renderMapList() {
         list.appendChild(folderEl);
     });
 
-    // Render root maps in ordered sequence
     state.mapOrder.forEach(mId => {
         const m = state.maps[mId];
         if (m && !m.folderId) rootEl.appendChild(createMapEl(mId, m));
@@ -2086,9 +2686,6 @@ function getNodeEdgePoint(nodeId, directionVec, attach) {
     };
 }
 
-// ─────────────────────────────────────────────
-//  EDGE COLORS PALETTE
-// ─────────────────────────────────────────────
 const EDGE_COLORS = [
     { name: 'Default', value: '' },
     { name: 'Blue',    value: '#007bff' },
@@ -2447,7 +3044,6 @@ function onNodeClick(e, nodeId) {
         return;
     }
     
-    // Handle duplicate confirm flow
     if (mode === 'confirm-dupe') {
         selectedNodeId = nodeId;
         confirmDupeLink();
@@ -2465,7 +3061,6 @@ function selectNode(nodeId) {
     document.getElementById('edge-sidebar').classList.add('hidden');
     renderSidebar();
     redrawEdges();
-    // Re-render nodes so resize handles appear/disappear
     renderNodes();
 }
 
@@ -2477,7 +3072,6 @@ function onNodeMouseDown(e, nodeId) {
     const origX = node.x, origY = node.y;
     let moved = false;
 
-    // IF dragging a region, find all nodes inside it BEFORE we start dragging
     let childrenToMove = [];
     if (node.isRegion) {
         Object.values(currentMapData().nodes).forEach(n => {
@@ -2498,7 +3092,6 @@ function onNodeMouseDown(e, nodeId) {
         const el = document.getElementById('node-'+nodeId);
         if (el) { el.style.left = node.x+'px'; el.style.top = node.y+'px'; }
 
-        // Move children concurrently
         childrenToMove.forEach(c => {
             c.childNode.x = c.origCX + dx;
             c.childNode.y = c.origCY + dy;
@@ -2645,14 +3238,12 @@ function renderSidebar() {
     
     if (dupeMasterId) {
         if (dupeMasterId === selectedNodeId) {
-            // Looking at the source
             const btnCancel = document.createElement('button');
             btnCancel.className = 'btn-danger';
             btnCancel.innerHTML = '<i class="fas fa-times"></i> Cancel Linking';
             btnCancel.onclick = cancelDupeLink;
             dupeControls.appendChild(btnCancel);
         } else {
-            // Looking at a target
             const masterNode = findNodeGlobally(dupeMasterId);
             const btnConfirm = document.createElement('button');
             btnConfirm.className = 'btn-primary';
@@ -2687,7 +3278,6 @@ function renderSidebar() {
         }
     }
 
-    // Render "Also Appears In" list in sidebar
     const dupeList = document.getElementById('sb-duplicates-list');
     const dupeSection = document.getElementById('sb-duplicates-section');
     dupeList.innerHTML = '';
@@ -2709,7 +3299,6 @@ function renderSidebar() {
     } else {
         dupeSection.classList.add('hidden');
     }
-    // --- END DUPLICATE LINK UI ---
 
     const ll = document.getElementById('sb-links');
     ll.innerHTML = '';
@@ -2757,11 +3346,10 @@ function renderSidebar() {
         </button>`;
     });
 
-    // Update Sub-Map button UI
     const smBtn = document.getElementById('btn-submap');
     if (node.subMapId) {
         smBtn.innerHTML = '<i class="fas fa-folder-open"></i> Open Sub-Map';
-        smBtn.style.background = '#28a745'; // Green to indicate it exists
+        smBtn.style.background = '#28a745'; 
     } else {
         smBtn.innerHTML = '<i class="fas fa-sitemap"></i> Create Sub-Map';
         smBtn.style.background = 'var(--primary-color)';
@@ -2773,7 +3361,7 @@ function updateNode(field, value) {
     currentMapData().nodes[selectedNodeId][field] = value;
     saveState();
     renderNodes();
-    renderSidebar();
+    if(field !== 'desc') renderSidebar(); 
     redrawEdges();
 }
 
@@ -2918,33 +3506,35 @@ function deleteSelectedNode() {
 }
 
 // ─────────────────────────────────────────────
-//  COPY / PASTE / CUT
+//  COPY / PASTE / CUT (Sync'd globally with LocalStorage)
 // ─────────────────────────────────────────────
 function copyNode(nodeId) {
     const node = currentMapData().nodes[nodeId];
     if (!node) return;
-    // Save the node data and tag it with the map it originated from
-    clipboard = { type: 'node', data: JSON.parse(JSON.stringify(node)), sourceMap: state.currentMap };
+    const clipData = { type: 'node', data: JSON.parse(JSON.stringify(node)), sourceMap: state.currentMap };
+    localStorage.setItem('cm_clipboard', JSON.stringify(clipData));
 }
 
 function pasteNode() {
+    const clipStr = localStorage.getItem('cm_clipboard');
+    if (!clipStr) return;
+    let clipboard;
+    try { clipboard = JSON.parse(clipStr); } catch(e) { return; }
     if (!clipboard.data || clipboard.type !== 'node') return;
+
     const newId = 'n_' + Date.now();
     const newNode = JSON.parse(JSON.stringify(clipboard.data));
     newNode.id = newId;
     
-    // If pasting in the same map, offset it so it doesn't overlap perfectly
     if (clipboard.sourceMap === state.currentMap) {
         newNode.x += 40;
         newNode.y += 40;
     } else {
-        // If pasting in a DIFFERENT map, drop it dead center of the current screen view
         const wrap = document.getElementById('canvas-wrap');
         newNode.x = (wrap.clientWidth / 2 - transform.x) / transform.scale;
         newNode.y = (wrap.clientHeight / 2 - transform.y) / transform.scale;
     }
 
-    // Don't copy subMapIds across copy/paste to avoid circular map references
     delete newNode.subMapId; 
     currentMapData().nodes[newId] = newNode;
     saveState();
@@ -2955,16 +3545,20 @@ function pasteNode() {
 function copyEdge(edgeId) {
     const edge = currentMapData().edges.find(e => e.id === edgeId);
     if (!edge) return;
-    clipboard = { type: 'edge', data: JSON.parse(JSON.stringify(edge)), sourceMap: state.currentMap };
+    const clipData = { type: 'edge', data: JSON.parse(JSON.stringify(edge)), sourceMap: state.currentMap };
+    localStorage.setItem('cm_clipboard', JSON.stringify(clipData));
 }
 
 function pasteEdge() {
-    if (!clipboard.data || clipboard.type !== 'edge') return;
-    if (!selectedNodeId) return;
+    const clipStr = localStorage.getItem('cm_clipboard');
+    if (!clipStr) return;
+    let clipboard;
+    try { clipboard = JSON.parse(clipStr); } catch(e) { return; }
+    if (!clipboard.data || clipboard.type !== 'edge' || !selectedNodeId) return;
+
     const edge = clipboard.data;
     const map = currentMapData();
     
-    // Safety guard: Cross-map edge pasting breaks if the source concept isn't in this map
     if (!map.nodes[edge.from]) {
         alert('Cannot paste this connector here because its original source concept does not exist in this map.');
         return;
@@ -2973,7 +3567,7 @@ function pasteEdge() {
     const newEdge = JSON.parse(JSON.stringify(edge));
     newEdge.id = 'e_' + Date.now();
     newEdge.from = edge.from;
-    newEdge.to = selectedNodeId; // Pastes to the currently selected node
+    newEdge.to = selectedNodeId;
     map.edges.push(newEdge);
     saveState();
     redrawEdges();
@@ -2983,7 +3577,7 @@ function pasteEdge() {
 //  MAPS & NESTED MAPS
 // ─────────────────────────────────────────────
 function switchMap(id) {
-    if (state.currentMap === id) return; // Prevent unnecessary re-render if already active
+    if (state.currentMap === id) return; 
     state.currentMap = id;
     selectedNodeId = null;
     saveState();
@@ -3023,20 +3617,18 @@ function toggleSubMap() {
     if (!selectedNodeId) return;
     const node = currentMapData().nodes[selectedNodeId];
     
-    // If it already has a sub-map, open it
     if (node.subMapId && state.maps[node.subMapId]) {
         switchMap(node.subMapId);
         return;
     }
     
-    // Otherwise, create a new sub-map
     const newMapId = 'map_' + Date.now();
-    const currentMapFolder = state.maps[state.currentMap].folderId; // inherit parent folder
+    const currentMapFolder = state.maps[state.currentMap].folderId; 
     state.maps[newMapId] = { 
         name: node.title || 'Sub-Map', 
         nodes: {}, 
         edges: [],
-        parentMapId: state.currentMap, // Critical for the breadcrumb trail
+        parentMapId: state.currentMap,
         folderId: currentMapFolder
     };
     node.subMapId = newMapId;
@@ -3051,13 +3643,11 @@ function renderBreadcrumbs() {
     let path = [];
     let curr = state.currentMap;
     
-    // Trace back to the root map
     while (curr && state.maps[curr]) {
         path.unshift({ id: curr, name: state.maps[curr].name });
         curr = state.maps[curr].parentMapId;
     }
     
-    // Render the trail
     path.forEach((step, index) => {
         const btn = document.createElement('button');
         btn.className = 'breadcrumb-btn';
@@ -3126,15 +3716,13 @@ themeToggle.addEventListener('click', () => {
 //  KEYBOARD SHORTCUTS
 // ─────────────────────────────────────────────
 document.addEventListener('keydown', e => {
-    // Ignore shortcuts if the user is typing in an input or text area
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
 
-    // Cut (Ctrl+X or Cmd+X)
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'x') {
         e.preventDefault();
         if (selectedNodeId) {
             copyNode(selectedNodeId);
-            deleteSelectedNode(); // Removes it from current map
+            deleteSelectedNode(); 
         } else if (selectedEdgeId) {
             copyEdge(selectedEdgeId);
             deleteSelectedEdge();
@@ -3142,7 +3730,6 @@ document.addEventListener('keydown', e => {
         return;
     }
 
-    // Copy (Ctrl+C or Cmd+C)
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
         e.preventDefault();
         if (selectedNodeId) copyNode(selectedNodeId);
@@ -3150,11 +3737,13 @@ document.addEventListener('keydown', e => {
         return;
     }
 
-    // Paste (Ctrl+V or Cmd+V)
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
         e.preventDefault();
-        if (clipboard.type === 'node') pasteNode();
-        else if (clipboard.type === 'edge' && selectedNodeId) pasteEdge();
+        const clipStr = localStorage.getItem('cm_clipboard');
+        if(!clipStr) return;
+        const clip = JSON.parse(clipStr);
+        if (clip.type === 'node') pasteNode();
+        else if (clip.type === 'edge' && selectedNodeId) pasteEdge();
         return;
     }
 
@@ -3176,7 +3765,6 @@ document.addEventListener('keyup', e => {
     if (e.key === ' ' && mode === 'pan') setMode('select');
 });
 
-// Hide dropdowns if clicking outside
 document.addEventListener('click', e => {
     if (!e.target.closest('.dupe-badge-container')) {
         document.querySelectorAll('.dupe-dropdown.show').forEach(d => {
@@ -3188,32 +3776,19 @@ document.addEventListener('click', e => {
 });
 
 // ─────────────────────────────────────────────
-//  HELPERS
-// ─────────────────────────────────────────────
-function escHtml(s) {
-    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-function escAttr(s) { return escHtml(s); }
-
-// ─────────────────────────────────────────────
 //  CROSS-TAB SYNCHRONIZATION
 // ─────────────────────────────────────────────
 window.addEventListener('storage', (e) => {
     if (e.key === 'cm_state' && e.newValue) {
-        // Preserve this specific window's active map
         const activeMapInThisTab = state.currentMap; 
         
-        // Ingest the new state from the other tab
         state = JSON.parse(e.newValue);
         
-        // Re-apply the local active map (unless it was deleted)
         if (state.maps[activeMapInThisTab]) {
             state.currentMap = activeMapInThisTab;
         } else {
             state.currentMap = Object.keys(state.maps)[0];
         }
-        
-        // Re-render the UI with the fresh data
         renderAll();
     }
 });

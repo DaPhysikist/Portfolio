@@ -9,6 +9,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+    <script src="https://www.desmos.com/api/v1.11/calculator.js?apiKey=dcb31709b452b1cf9dc26972add0fda6"></script>
+
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
@@ -83,7 +89,7 @@
 
         /* ── Map tabs sidebar ── */
         .map-sidebar {
-            width: 200px;
+            width: 220px;
             flex-shrink: 0;
             background: var(--toolbar-bg);
             border-right: 1px solid var(--border-color);
@@ -151,7 +157,7 @@
             border-radius: 12px;
             padding: 10px 14px;
             min-width: 130px;
-            max-width: 210px;
+            max-width: none;
             cursor: pointer;
             user-select: none;
             transition: box-shadow 0.15s, transform 0.1s;
@@ -160,19 +166,34 @@
         .node:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.15) !important; }
         .node.selected { box-shadow: 0 0 0 3px rgba(0,123,255,0.3) !important; }
         .node-title { font-weight: 700; font-size: 13px; margin: 0 0 2px; }
-        .node-desc {
+        
+        /* Markdown / Content Overrides */
+        .node-desc, .info-desc {
             font-size: 11px; color: #888; margin: 0;
             overflow: hidden;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
+            white-space: normal;
+            word-wrap: break-word;
         }
+        .node-desc h1, .node-desc h2, .node-desc h3, .info-desc h1, .info-desc h2, .info-desc h3 { margin: 4px 0; font-size: 1.1em; color: var(--text-color); }
+        .node-desc p, .info-desc p { margin: 4px 0; }
+        .node-desc ul, .node-desc ol, .info-desc ul, .info-desc ol { margin: 4px 0; padding-left: 16px; }
+        .node-desc blockquote, .info-desc blockquote { border-left: 2px solid var(--primary-color); margin: 4px 0; padding-left: 6px; color: #666; }
+        .node-desc pre, .info-desc pre { background: rgba(0,0,0,0.05); padding: 4px; border-radius: 4px; overflow-x: auto; font-family: monospace; }
+        .node-desc code, .info-desc code { background: rgba(0,0,0,0.05); padding: 2px 4px; border-radius: 3px; font-family: monospace; font-size: 0.9em; }
+        .node-desc img, .info-desc img { max-width: 100%; border-radius: 4px; }
+        .node-desc hr, .info-desc hr { border: none; border-top: 1px solid var(--border-color); margin: 8px 0; }
+        .node-desc table, .info-desc table { width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 11px; }
+        .node-desc th, .node-desc td, .info-desc th, .info-desc td { border: 1px solid var(--border-color); padding: 4px 6px; }
+        .node-desc th, .info-desc th { background: rgba(0,0,0,0.05); font-weight: 700; color: var(--text-color); }
+        .node-desc::-webkit-scrollbar, .info-desc::-webkit-scrollbar { width: 4px; }
+        .node-desc::-webkit-scrollbar-thumb, .info-desc::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
+
         .node-tags { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 5px; }
         .node-tag { font-size: 10px; padding: 1px 6px; border-radius: 10px; }
 
         /* ── Grouping Regions ── */
         .node.region {
-            z-index: 1; /* Keep behind standard nodes */
+            z-index: 1;
             border-style: dashed !important;
             background: rgba(0, 123, 255, 0.03) !important;
             box-shadow: none !important;
@@ -213,7 +234,7 @@
 
         /* ── Info panel ── */
         .info-panel {
-            width: 290px;
+            width: 320px;
             flex-shrink: 0;
             background: var(--sidebar-bg);
             border-left: 1px solid var(--border-color);
@@ -241,7 +262,6 @@
         .info-desc {
             font-size: 13px;
             line-height: 1.6;
-            white-space: pre-wrap;
             color: var(--text-color);
         }
         .info-links { display: flex; flex-direction: column; gap: 5px; }
@@ -316,6 +336,7 @@
             text-align: center;
             color: #aaa;
             pointer-events: none;
+            z-index: 100;
         }
         .center-message i { font-size: 2.5rem; display: block; margin-bottom: 0.5rem; opacity: 0.4; }
         .center-message p { font-size: 13px; margin: 0; }
@@ -361,6 +382,24 @@
         ::-webkit-scrollbar { width: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+        
+        /* Modern Button Override for Upload */
+        .btn-upload {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--primary-color);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            pointer-events: all;
+            margin-top: 15px;
+            transition: opacity 0.2s;
+        }
+        .btn-upload:hover { opacity: 0.85; }
     </style>
 </head>
 <body>
@@ -399,6 +438,10 @@
         <div class="center-message" id="center-msg" style="display:none">
             <i class="fas fa-map"></i>
             <p id="center-msg-text"></p>
+            <label class="btn-upload" id="manual-upload-btn" style="display:none;">
+                <i class="fas fa-file-import"></i> Open map-data.json
+                <input type="file" accept=".json" style="display:none" onchange="importJSON(event)">
+            </label>
         </div>
         <div class="zoom-controls">
             <button class="zoom-btn" onclick="zoom(1.15)"><i class="fas fa-plus"></i></button>
@@ -435,6 +478,333 @@
 
 <script>
 // ─────────────────────────────────────────────
+//  MARKDOWN PARSER & CUSTOM EXTENSIONS
+// ─────────────────────────────────────────────
+let currentRenderingNodeId = null;
+const desmosGraphs = [];
+const circuitDrawers = [];
+
+if (window.marked) {
+    const customRenderer = {
+        code(code, lang, escaped) {
+            if (lang === 'desmos') {
+                const id = `desmos-${Math.random().toString(36).substr(2, 9)}`;
+                desmosGraphs.push({ id, expressions: code.split('\n') });
+                return `<div id="${id}" class="desmos-embed" style="width: 100%; height: 300px; margin: 10px 0; border-radius: 4px; overflow: hidden; border: 1px solid var(--border-color);"></div>\n`;
+            }
+            if (lang && lang.startsWith('circuit')) {
+                const title = lang.substring(7).trim() || 'Circuit Schematic';
+                const id = `circuit-${Math.random().toString(36).substr(2, 9)}`;
+                circuitDrawers.push(id);
+                return `<div class="circuit-container" style="border: 1px solid var(--border-color); padding: 8px; border-radius: 4px; margin: 10px 0; background: #fff;">
+                    <div style="font-size:12px; font-weight:bold; margin-bottom:6px; color:var(--text-color); font-family:sans-serif;">
+                        ${escHtml(title)}
+                    </div>
+                    <canvas id="${id}" data-node-id="${currentRenderingNodeId}" width="400" height="250" style="background:#fcfcfc; border:1px solid #ccc; width: 100%; max-width: 100%;"></canvas>
+                </div>\n`;
+            }
+            return false;
+        },
+        link(href, title, text) {
+            if (href.includes('diagrams.net') || href.includes('draw.io')) {
+                let embedUrl = href.replace('calc.html', 'index.html');
+                return `<div class="drawio-embed" style="position:relative; padding-bottom:60%; height:0; overflow:hidden; margin: 10px 0; border: 1px solid var(--border-color); border-radius: 4px;">
+                    <iframe src="${embedUrl}&embed=1" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allowfullscreen></iframe>
+                </div>\n`;
+            }
+            return false;
+        }
+    };
+    marked.use({ renderer: customRenderer });
+}
+
+function renderMarkdown(text, nodeId) {
+    if (!text) return '';
+    currentRenderingNodeId = nodeId;
+    let html = text;
+    
+    html = html.replace(/!\[video\]\((.*?)\)/gi, '<video controls style="max-width:100%; margin:4px 0;"><source src="$1"></video>');
+    html = html.replace(/!\[audio\]\((.*?)\)/gi, '<audio controls style="max-width:100%; margin:4px 0;"><source src="$1"></audio>');
+    html = html.replace(/!\[(?:embed|pdf|ppt)\]\((.*?)\)/gi, '<iframe src="$1" style="width:100%; height:150px; border:1px solid var(--border-color); border-radius:4px; margin:4px 0;" allowfullscreen></iframe>');
+
+    const mathBlocks = [];
+    html = html.replace(/\$\$([\s\S]*?)\$\$/g, (match) => {
+        mathBlocks.push(match);
+        return `@@MATH_BLOCK_${mathBlocks.length - 1}@@`;
+    });
+    html = html.replace(/\$([^$\n]+?)\$/g, (match) => {
+        mathBlocks.push(match);
+        return `@@MATH_BLOCK_${mathBlocks.length - 1}@@`;
+    });
+
+    if (window.marked) {
+        html = marked.parse(html);
+    }
+
+    mathBlocks.forEach((block, i) => {
+        html = html.replace(`@@MATH_BLOCK_${i}@@`, () => escHtml(block));
+    });
+
+    currentRenderingNodeId = null;
+    return html;
+}
+
+function postRenderInit() {
+    if (window.renderMathInElement) {
+        renderMathInElement(document.getElementById('nodes-layer'), {
+            delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+        });
+        renderMathInElement(document.getElementById('info-panel'), {
+            delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+        });
+    }
+    
+    // Initialize Desmos
+    desmosGraphs.forEach(graph => {
+        const element = document.getElementById(graph.id);
+        if (element && !element.dataset.initialized) {
+            element.dataset.initialized = 'true';
+            const nodeEl = element.closest('.node');
+            if (nodeEl) {
+                const nodeId = nodeEl.id.replace('node-', '');
+                const node = currentMap().nodes[nodeId];
+                let changed = false;
+                if (node.width < 400) { node.width = 400; changed = true; }
+                if (node.height < 450) { node.height = 450; changed = true; }
+                if (changed) {
+                    nodeEl.style.width = node.width + 'px';
+                    nodeEl.style.minHeight = node.height + 'px';
+                }
+            }
+            element.addEventListener('mousedown', e => e.stopPropagation());
+            element.addEventListener('touchstart', e => e.stopPropagation(), {passive: false});
+
+            if (window.Desmos) {
+                const calculator = Desmos.GraphingCalculator(element, { expressionsPixelRatio: 2 });
+                graph.expressions.forEach((expr, i) => {
+                    if (expr.trim()) calculator.setExpression({ id: 'graph'+i, latex: expr });
+                });
+            }
+        }
+    });
+    desmosGraphs.length = 0;
+
+    // Initialize Circuit Drawers (Read-Only Mode)
+    circuitDrawers.forEach(id => {
+        const canvas = document.getElementById(id);
+        if (!canvas || canvas.dataset.initialized) return;
+        canvas.dataset.initialized = 'true';
+
+        let elements = [];
+        const GRID = 20;
+
+        const nodeId = canvas.dataset.nodeId;
+        const node = nodeId ? currentMap().nodes[nodeId] : null;
+
+        if (node) {
+            const nodeEl = canvas.closest('.node');
+            if (nodeEl) {
+                let changed = false;
+                if (node.width < 450) { node.width = 450; changed = true; }
+                if (node.height < 380) { node.height = 380; changed = true; }
+                if (changed) {
+                    nodeEl.style.width = node.width + 'px';
+                    nodeEl.style.minHeight = node.height + 'px';
+                }
+            }
+            
+            if (node.circuitData) {
+                const parent = canvas.closest('.node') || canvas.closest('.info-body');
+                if (parent) {
+                    const canvases = Array.from(parent.querySelectorAll('canvas[id^="circuit-"]'));
+                    const cIdx = canvases.indexOf(canvas);
+                    if (node.circuitData[cIdx]) elements = node.circuitData[cIdx];
+                }
+            }
+        }
+
+        const ctx = canvas.getContext('2d');
+
+        function drawShape(ctx, type, label) {
+            ctx.beginPath();
+            if (type === 'R') {
+                ctx.moveTo(-20, 0); ctx.lineTo(-15, 0);
+                ctx.lineTo(-10, -8); ctx.lineTo(0, 8);
+                ctx.lineTo(10, -8); ctx.lineTo(15, 0);
+                ctx.lineTo(20, 0); ctx.stroke();
+            } else if (type === 'C') {
+                ctx.moveTo(-15, 0); ctx.lineTo(-4, 0);
+                ctx.moveTo(15, 0); ctx.lineTo(4, 0);
+                ctx.moveTo(-4, -12); ctx.lineTo(-4, 12);
+                ctx.moveTo(4, -12); ctx.lineTo(4, 12);
+                ctx.stroke();
+            } else if (type === 'L') {
+                ctx.moveTo(-20, 0); ctx.lineTo(-15, 0);
+                for(let i=0; i<3; i++) ctx.arc(-10 + (i*10), 0, 5, Math.PI, 0);
+                ctx.lineTo(20, 0); ctx.stroke();
+            } else if (type === 'D') {
+                ctx.moveTo(-8, -8); ctx.lineTo(-8, 8); ctx.lineTo(8, 0); ctx.closePath();
+                ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(8, -8); ctx.lineTo(8, 8); ctx.stroke();
+            } else if (type === 'Z') {
+                ctx.moveTo(-8, -8); ctx.lineTo(-8, 8); ctx.lineTo(8, 0); ctx.closePath();
+                ctx.stroke();
+                ctx.beginPath(); 
+                ctx.moveTo(12, -8); ctx.lineTo(8, -8); ctx.lineTo(8, 8); ctx.lineTo(4, 8);
+                ctx.stroke();
+            } else if (type === 'Q') {
+                ctx.moveTo(-15, 0); ctx.lineTo(-5, 0); 
+                ctx.moveTo(-5, -10); ctx.lineTo(-5, 10); 
+                ctx.moveTo(-5, -5); ctx.lineTo(5, -15); ctx.lineTo(5, -20); 
+                ctx.moveTo(-5, 5); ctx.lineTo(5, 15); ctx.lineTo(5, 20); 
+                ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(5, 15); ctx.lineTo(2, 10); ctx.lineTo(0, 14); ctx.fill(); 
+            } else if (type === 'F') {
+                ctx.moveTo(-15, 0); ctx.lineTo(-5, 0); 
+                ctx.moveTo(-5, -10); ctx.lineTo(-5, 10); 
+                ctx.moveTo(-2, -10); ctx.lineTo(-2, -3); 
+                ctx.moveTo(-2, -2); ctx.lineTo(-2, 2);   
+                ctx.moveTo(-2, 3); ctx.lineTo(-2, 10);   
+                ctx.moveTo(-2, -6); ctx.lineTo(10, -6); ctx.lineTo(10, -20); 
+                ctx.moveTo(-2, 6); ctx.lineTo(10, 6); ctx.lineTo(10, 20); 
+                ctx.moveTo(-2, 0); ctx.lineTo(10, 0); ctx.lineTo(10, 6); 
+                ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(2, 0); ctx.lineTo(6, -3); ctx.lineTo(6, 3); ctx.fill(); 
+            } else if (type === 'E') {
+                ctx.moveTo(-15, 0); ctx.lineTo(-10, 0); 
+                ctx.stroke();
+                ctx.beginPath(); ctx.arc(-7.5, 0, 2.5, 0, 2*Math.PI); ctx.stroke(); 
+                ctx.beginPath();
+                ctx.moveTo(-5, -10); ctx.lineTo(-5, 10); 
+                ctx.moveTo(-2, -10); ctx.lineTo(-2, -3); 
+                ctx.moveTo(-2, -2); ctx.lineTo(-2, 2);   
+                ctx.moveTo(-2, 3); ctx.lineTo(-2, 10);   
+                ctx.moveTo(-2, -6); ctx.lineTo(10, -6); ctx.lineTo(10, -20); 
+                ctx.moveTo(-2, 6); ctx.lineTo(10, 6); ctx.lineTo(10, 20); 
+                ctx.moveTo(-2, 0); ctx.lineTo(10, 0); ctx.lineTo(10, 6); 
+                ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(2, -3); ctx.lineTo(2, 3); ctx.fill(); 
+            } else if (type === 'O') {
+                ctx.arc(0, 0, 12, 0, 2*Math.PI); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-6, 0);
+                ctx.quadraticCurveTo(-3, -6, 0, 0);
+                ctx.quadraticCurveTo(3, 6, 6, 0); ctx.stroke();
+            } else if (type === 'I') {
+                ctx.arc(0, 0, 12, 0, 2*Math.PI); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, 7); ctx.lineTo(0, -7); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-3, -3); ctx.lineTo(0, -7); ctx.lineTo(3, -3); ctx.stroke();
+            } else if (type === 'V') {
+                ctx.arc(0, 0, 12, 0, 2*Math.PI); ctx.stroke();
+                ctx.font = '12px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText('+', 0, -5); ctx.fillText('-', 0, 5);
+            } else if (type === 'J') {
+                ctx.moveTo(0, -14); ctx.lineTo(14, 0); ctx.lineTo(0, 14); ctx.lineTo(-14, 0); ctx.closePath(); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, 7); ctx.lineTo(0, -7); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-3, -3); ctx.lineTo(0, -7); ctx.lineTo(3, -3); ctx.stroke();
+            } else if (type === 'U') {
+                ctx.moveTo(0, -14); ctx.lineTo(14, 0); ctx.lineTo(0, 14); ctx.lineTo(-14, 0); ctx.closePath(); ctx.stroke();
+                ctx.font = '12px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText('+', 0, -5); ctx.fillText('-', 0, 5);
+            } else if (type === 'B') {
+                ctx.moveTo(-6, -12); ctx.lineTo(-6, 12);
+                ctx.moveTo(-2, -6);  ctx.lineTo(-2, 6);
+                ctx.moveTo(2, -12);  ctx.lineTo(2, 12);
+                ctx.moveTo(6, -6);   ctx.lineTo(6, 6); ctx.stroke();
+            } else if (type === 'G') {
+                ctx.moveTo(0, -10); ctx.lineTo(0, 0);
+                ctx.moveTo(-10, 0); ctx.lineTo(10, 0);
+                ctx.moveTo(-6, 4); ctx.lineTo(6, 4);
+                ctx.moveTo(-2, 8); ctx.lineTo(2, 8); ctx.stroke();
+            } else if (type === 'P') {
+                ctx.moveTo(-15, -15); ctx.lineTo(15, 0); ctx.lineTo(-15, 15); ctx.closePath();
+                ctx.stroke();
+                ctx.font = '10px monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+                ctx.fillText('+', -12, -7); ctx.fillText('-', -12, 7);
+            } else if (type === 'A') {
+                ctx.moveTo(0, 10); ctx.lineTo(0, -5); ctx.lineTo(-8, -15);
+                ctx.moveTo(0, -5); ctx.lineTo(8, -15);
+                ctx.moveTo(0, -5); ctx.lineTo(0, -15); ctx.stroke();
+            } else if (type === 'M') {
+                ctx.font = '12px sans-serif';
+                const w = Math.max(40, ctx.measureText(label || 'IC').width + 16);
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(-w/2, -15, w, 30);
+                ctx.strokeRect(-w/2, -15, w, 30);
+                ctx.fillStyle = '#000';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(label || 'IC', 0, 0);
+            } else if (type === 'N') {
+                ctx.beginPath(); ctx.arc(0, 0, 2.5, 0, Math.PI*2); ctx.fill();
+                ctx.font = '12px monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+                ctx.fillText(label || 'NET', 4, -4);
+            } else if (type === '1') {
+                ctx.moveTo(-10, -10); ctx.lineTo(0, -10); ctx.arc(0, 0, 10, -Math.PI/2, Math.PI/2); ctx.lineTo(-10, 10); ctx.closePath(); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-15, -5); ctx.lineTo(-10, -5); ctx.moveTo(-15, 5); ctx.lineTo(-10, 5); ctx.moveTo(10, 0); ctx.lineTo(15, 0); ctx.stroke();
+            } else if (type === '2') {
+                ctx.moveTo(-10, -12); ctx.quadraticCurveTo(5, -12, 15, 0); ctx.quadraticCurveTo(5, 12, -10, 12); ctx.quadraticCurveTo(0, 0, -10, -12); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-15, -5); ctx.lineTo(-6, -5); ctx.moveTo(-15, 5); ctx.lineTo(-6, 5); ctx.moveTo(15, 0); ctx.lineTo(20, 0); ctx.stroke();
+            } else if (type === '3') {
+                ctx.moveTo(-10, -10); ctx.lineTo(6, 0); ctx.lineTo(-10, 10); ctx.closePath(); ctx.stroke();
+                ctx.beginPath(); ctx.arc(9, 0, 3, 0, 2*Math.PI); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-15, 0); ctx.lineTo(-10, 0); ctx.moveTo(12, 0); ctx.lineTo(17, 0); ctx.stroke();
+            } else if (type === '4') {
+                ctx.moveTo(-12, -10); ctx.lineTo(-2, -10); ctx.arc(-2, 0, 10, -Math.PI/2, Math.PI/2); ctx.lineTo(-12, 10); ctx.closePath(); ctx.stroke();
+                ctx.beginPath(); ctx.arc(11, 0, 3, 0, 2*Math.PI); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-17, -5); ctx.lineTo(-12, -5); ctx.moveTo(-17, 5); ctx.lineTo(-12, 5); ctx.moveTo(14, 0); ctx.lineTo(19, 0); ctx.stroke();
+            } else if (type === '5') {
+                ctx.moveTo(-12, -12); ctx.quadraticCurveTo(3, -12, 13, 0); ctx.quadraticCurveTo(3, 12, -12, 12); ctx.quadraticCurveTo(-2, 0, -12, -12); ctx.stroke();
+                ctx.beginPath(); ctx.arc(16, 0, 3, 0, 2*Math.PI); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-17, -5); ctx.lineTo(-8, -5); ctx.moveTo(-17, 5); ctx.lineTo(-8, 5); ctx.moveTo(19, 0); ctx.lineTo(24, 0); ctx.stroke();
+            } else if (type === '6') {
+                ctx.moveTo(-8, -12); ctx.quadraticCurveTo(7, -12, 17, 0); ctx.quadraticCurveTo(7, 12, -8, 12); ctx.quadraticCurveTo(2, 0, -8, -12); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-12, -12); ctx.quadraticCurveTo(-2, 0, -12, 12); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-17, -5); ctx.lineTo(-7, -5); ctx.moveTo(-17, 5); ctx.lineTo(-7, 5); ctx.moveTo(17, 0); ctx.lineTo(22, 0); ctx.stroke();
+            } else if (type === '7') {
+                ctx.moveTo(-10, -12); ctx.quadraticCurveTo(5, -12, 15, 0); ctx.quadraticCurveTo(5, 12, -10, 12); ctx.quadraticCurveTo(0, 0, -10, -12); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-14, -12); ctx.quadraticCurveTo(-4, 0, -14, 12); ctx.stroke();
+                ctx.beginPath(); ctx.arc(18, 0, 3, 0, 2*Math.PI); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-19, -5); ctx.lineTo(-9, -5); ctx.moveTo(-19, 5); ctx.lineTo(-9, 5); ctx.moveTo(21, 0); ctx.lineTo(26, 0); ctx.stroke();
+            }
+        }
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#ddd';
+        for (let x = 0; x <= canvas.width; x += GRID) {
+            for (let y = 0; y <= canvas.height; y += GRID) {
+                ctx.fillRect(x - 1, y - 1, 2, 2);
+            }
+        }
+
+        elements.forEach(el => {
+            ctx.strokeStyle = '#000'; ctx.fillStyle = '#000';
+            ctx.lineWidth = 2; ctx.lineJoin = 'round';
+
+            if (el.type === 'W') {
+                ctx.beginPath();
+                ctx.moveTo(el.x1, el.y1); ctx.lineTo(el.x2, el.y2); ctx.stroke();
+                ctx.beginPath(); ctx.arc(el.x1, el.y1, 2.5, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(el.x2, el.y2, 2.5, 0, Math.PI*2); ctx.fill();
+            } else {
+                ctx.save();
+                ctx.translate(el.x, el.y);
+                ctx.rotate((el.rot || 0) * Math.PI / 180);
+                drawShape(ctx, el.type, el.label);
+                ctx.restore();
+            }
+        });
+    });
+    circuitDrawers.length = 0;
+}
+
+// ─────────────────────────────────────────────
 //  COLORS (must match editor)
 // ─────────────────────────────────────────────
 const COLORS = {
@@ -464,55 +834,152 @@ let selectedNodeId = null;
 let transform = { x: 0, y: 0, scale: 1 };
 
 // ─────────────────────────────────────────────
-//  LOAD
+//  LOAD (Fixed: Prioritizes map-data.json, falls back to Live Sync)
 // ─────────────────────────────────────────────
 async function loadData() {
     showMessage('<i class="fas fa-spinner fa-spin"></i>', 'Loading maps…');
+    let loadedFromFile = false;
+
     try {
+        // 1. Try reading the exported file FIRST (Source of Truth)
         const res = await fetch('map-data.json?_=' + Date.now());
-        if (!res.ok) throw new Error('not found');
-        const raw = await res.json();
-
-        // Support both full state format and single-map format
-        if (raw.maps) {
-            mapData = raw;
-        } else if (raw.nodes && raw.edges) {
-            const id = 'map_default';
-            mapData = { maps: { [id]: { name: raw.name || 'My Concepts', nodes: raw.nodes, edges: raw.edges } } };
-        } else {
-            throw new Error('unrecognized format');
+        if (res.ok) {
+            const raw = await res.json();
+            if (raw.maps) {
+                mapData = raw;
+                loadedFromFile = true;
+            } else if (raw.nodes && raw.edges) {
+                const id = 'map_default';
+                mapData = { maps: { [id]: { name: raw.name || 'My Concepts', nodes: raw.nodes, edges: raw.edges } } };
+                loadedFromFile = true;
+            }
         }
+    } catch(e) {
+        console.log("Fetch failed (likely due to local file:// protocol blocking). Checking local storage...");
+    }
 
+    // 2. If the file is missing or blocked, pull from the live Editor memory
+    if (!loadedFromFile) {
+        const draft = localStorage.getItem('cm_state');
+        if (draft) {
+            try {
+                const parsed = JSON.parse(draft);
+                if (parsed.maps && Object.keys(parsed.maps).length > 0) {
+                    mapData = parsed;
+                }
+            } catch(e) {}
+        }
+    }
+
+    // 3. Render whatever we successfully loaded, or prompt manual upload
+    if (mapData && mapData.maps && Object.keys(mapData.maps).length > 0) {
+        hideMessage();
         const ids = Object.keys(mapData.maps);
-        if (!ids.length) throw new Error('empty');
         renderMapTabs();
         switchMap(ids[0]);
-    } catch(e) {
-        hideMessage();
-        showMessage('fas fa-map', `No maps published yet.`);
+    } else {
+        document.getElementById('center-msg-text').innerHTML = `Cannot automatically read map-data.json (browsers block local file access).<br><br>Please select your file manually:`;
+        document.getElementById('manual-upload-btn').style.display = 'inline-flex';
     }
 }
 
 function showMessage(icon, text) {
     const el = document.getElementById('center-msg');
     el.style.display = 'block';
-    el.innerHTML = `<i class="${icon}" style="font-size:2.5rem;display:block;margin-bottom:0.5rem;opacity:0.4"></i><p style="font-size:13px;margin:0">${text}</p>`;
+    el.innerHTML = `<i class="${icon}" style="font-size:2.5rem;display:block;margin-bottom:0.5rem;opacity:0.4"></i><p id="center-msg-text" style="font-size:13px;margin:0">${text}</p>`;
 }
 function hideMessage() { document.getElementById('center-msg').style.display = 'none'; }
 
+function importJSON(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        try {
+            const raw = JSON.parse(e.target.result);
+            if (raw.maps) { mapData = raw; }
+            else if (raw.nodes && raw.edges) {
+                const id = 'map_default';
+                mapData = { maps: { [id]: { name: raw.name || file.name, nodes: raw.nodes, edges: raw.edges } } };
+            } else throw new Error('Invalid format');
+            
+            const ids = Object.keys(mapData.maps);
+            hideMessage();
+            renderMapTabs();
+            switchMap(ids[0]);
+        } catch { alert('Could not parse JSON file.'); }
+    };
+    reader.readAsText(file);
+}
+
 // ─────────────────────────────────────────────
-//  MAP TABS & NAVIGATION
+//  MAP TABS (Sidebar with Folder Support)
 // ─────────────────────────────────────────────
 function renderMapTabs() {
-    const tabs = document.getElementById('map-tabs');
-    tabs.innerHTML = '';
-    Object.entries(mapData.maps).forEach(([id, map]) => {
-        const btn = document.createElement('button');
-        btn.className = 'map-tab' + (id === currentMapId ? ' active' : '');
-        btn.innerHTML = `<i class="fas fa-circle"></i> ${escHtml(map.name)}`;
-        btn.addEventListener('click', () => switchMap(id));
-        tabs.appendChild(btn);
+    const list = document.getElementById('map-tabs');
+    list.innerHTML = '';
+    
+    if (!mapData.folders) mapData.folders = {};
+    if (!mapData.folderOrder) mapData.folderOrder = Object.keys(mapData.folders);
+    if (!mapData.mapOrder) mapData.mapOrder = Object.keys(mapData.maps);
+
+    const createMapEl = (id, map) => {
+        const item = document.createElement('button');
+        item.className = 'map-tab' + (id === currentMapId ? ' active' : '');
+        item.innerHTML = `<i class="fas fa-file-alt" style="font-size:10px;opacity:0.5;"></i> <span style="flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(map.name)}</span>`;
+        item.addEventListener('click', () => switchMap(id));
+        return item;
+    };
+
+    const rootEl = document.createElement('div');
+    rootEl.className = 'folder-root';
+    rootEl.style.display = 'flex';
+    rootEl.style.flexDirection = 'column';
+    rootEl.style.gap = '2px';
+
+    mapData.folderOrder.forEach(folderId => {
+        const f = mapData.folders[folderId];
+        if (!f) return;
+        
+        const folderEl = document.createElement('div');
+        folderEl.style.marginBottom = '2px';
+        
+        const header = document.createElement('div');
+        header.className = 'map-tab'; 
+        header.style.fontWeight = '700';
+        header.style.color = 'var(--text-color)';
+        header.innerHTML = `<i class="fas fa-chevron-${f.expanded ? 'down' : 'right'}" style="width:14px;text-align:center;"></i> <span style="flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escHtml(f.name)}</span>`;
+        
+        header.onclick = () => {
+            f.expanded = !f.expanded;
+            renderMapTabs();
+        };
+        folderEl.appendChild(header);
+
+        if (f.expanded) {
+            const children = document.createElement('div');
+            children.style.display = 'flex';
+            children.style.flexDirection = 'column';
+            children.style.gap = '2px';
+            children.style.paddingLeft = '14px';
+            children.style.marginLeft = '7px';
+            children.style.borderLeft = '1px dashed var(--border-color)';
+            children.style.marginTop = '2px';
+            
+            mapData.mapOrder.forEach(mId => {
+                const m = mapData.maps[mId];
+                if (m && m.folderId === f.id) children.appendChild(createMapEl(mId, m));
+            });
+            folderEl.appendChild(children);
+        }
+        list.appendChild(folderEl);
     });
+
+    mapData.mapOrder.forEach(mId => {
+        const m = mapData.maps[mId];
+        if (m && !m.folderId) rootEl.appendChild(createMapEl(mId, m));
+    });
+    list.appendChild(rootEl);
 }
 
 function renderBreadcrumbs() {
@@ -522,13 +989,12 @@ function renderBreadcrumbs() {
     let path = [];
     let curr = currentMapId;
     
-    // Trace back to the root map via parentMapId if nested
     while (curr && mapData.maps[curr]) {
         path.unshift({ id: curr, name: mapData.maps[curr].name });
         curr = mapData.maps[curr].parentMapId;
     }
     
-    if (path.length <= 1) return; // Don't show breadcrumbs if we are not nested
+    if (path.length <= 1) return;
     
     path.forEach((step, index) => {
         const btn = document.createElement('button');
@@ -555,6 +1021,7 @@ function switchMap(id) {
     renderBreadcrumbs();
     hideMessage();
     setTimeout(fitView, 50);
+    setTimeout(postRenderInit, 100);
 }
 
 function currentMap() { return mapData.maps[currentMapId]; }
@@ -605,7 +1072,6 @@ function renderNodes() {
         const el = document.createElement('div');
         el.className = 'node' + (node.id === selectedNodeId ? ' selected' : '');
         
-        // Render Grouping Region class
         if (node.isRegion) {
             el.classList.add('region');
         }
@@ -624,7 +1090,6 @@ function renderNodes() {
         el.style.fontSize = fontSize + 'px';
         el.style.color = fontColor;
 
-        // Sub-Map visual indicator (thicker border)
         if (node.subMapId) el.style.borderWidth = '4px';
 
         if (shape === 'rounded') el.style.borderRadius = '8px';
@@ -654,15 +1119,15 @@ function renderNodes() {
         if (node.descFontItalic) descStyle += ';font-style:italic';
         if (node.descFontUnderline) descStyle += ';text-decoration:underline';
 
-        let descContent = escHtml(node.desc || '');
+        let descContent = renderMarkdown(node.desc, node.id);
         if (node.desc && node.descHighlight) {
-            descContent = `<span style="background-color:${node.descHighlight};padding:2px 4px;border-radius:2px;display:inline-block">${descContent}</span>`;
+            descContent = `<div style="background-color:${node.descHighlight};padding:2px 4px;border-radius:2px;height:100%;">${descContent}</div>`;
         }
 
         el.innerHTML = `
             ${node.subMapId ? `<div class="node-submap-badge" title="Open Sub-Map"><i class="fas fa-sitemap"></i></div>` : ''}
             <div class="node-title" data-field="title" style="${titleStyle}">${titleContent}</div>
-            <p class="node-desc" data-field="desc" style="${descStyle}">${descContent}</p>
+            <div class="node-desc" data-field="desc" style="${descStyle}">${descContent}</div>
             ${tags.length ? `<div class="node-tags">${tags.map(t => `<span class="node-tag" style="background:${borderColor}22;color:${borderColor}">${escHtml(t)}</span>`).join('')}</div>` : ''}
         `;
 
@@ -673,7 +1138,6 @@ function renderNodes() {
             if (descEl) descEl.style.transform = 'rotate(-45deg)';
         }
 
-        // Sub-Map Badge Interaction
         const submapBadge = el.querySelector('.node-submap-badge');
         if (submapBadge) {
             submapBadge.addEventListener('click', e => {
@@ -684,7 +1148,6 @@ function renderNodes() {
             });
         }
 
-        // Double-click navigation for sub-maps (matching the editor)
         el.addEventListener('dblclick', e => {
             e.stopPropagation();
             if (node.subMapId && mapData.maps[node.subMapId]) {
@@ -952,6 +1415,7 @@ function selectNode(nodeId) {
     if (nodeId) document.getElementById('node-' + nodeId)?.classList.add('selected');
     redrawEdges();
     renderInfoPanel();
+    postRenderInit();
 }
 
 function renderInfoPanel() {
@@ -965,7 +1429,6 @@ function renderInfoPanel() {
     panel.classList.remove('hidden');
     const isDark = document.body.classList.contains('dark-mode');
     
-    // Resolve border color exactly like renderNodes
     let col = node.borderColor;
     if (!col && node.color) {
         const c = COLORS[node.color];
@@ -987,7 +1450,7 @@ function renderInfoPanel() {
     const descSec = document.getElementById('info-desc-section');
     if (node.desc && node.desc.trim()) {
         descSec.style.display = 'block';
-        document.getElementById('info-desc').textContent = node.desc;
+        document.getElementById('info-desc').innerHTML = renderMarkdown(node.desc, node.id);
     } else { descSec.style.display = 'none'; }
 
     // links
@@ -1134,7 +1597,7 @@ themeToggle.addEventListener('click', () => {
     localStorage.setItem('theme', isDark ? 'dark' : 'light');
     sunIcon.style.display  = isDark ? 'none'         : 'inline-block';
     moonIcon.style.display = isDark ? 'inline-block' : 'none';
-    if (mapData) { renderNodes(); redrawEdges(); renderInfoPanel(); }
+    if (mapData) { renderNodes(); redrawEdges(); renderInfoPanel(); postRenderInit(); }
 });
 
 window.addEventListener('resize', redrawEdges);
