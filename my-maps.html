@@ -497,10 +497,10 @@ if (window.marked) {
                 const id = `circuit-${Math.random().toString(36).substr(2, 9)}`;
                 circuitDrawers.push(id);
                 return `<div class="circuit-container" style="border: 1px solid var(--border-color); padding: 8px; border-radius: 4px; margin: 10px 0; background: #fff;">
-                    <div style="font-size:12px; font-weight:bold; margin-bottom:6px; color:var(--text-color); font-family:sans-serif;">
-                        ${escHtml(title)}
+                    <div style="font-size:12px; font-weight:bold; margin-bottom:6px; color:var(--text-color); font-family:sans-serif; display:flex; justify-content:space-between;">
+                        <span>${escHtml(title)}</span>
                     </div>
-                    <canvas id="${id}" data-node-id="${currentRenderingNodeId}" width="400" height="250" style="background:#fcfcfc; border:1px solid #ccc; width: 100%; max-width: 100%;"></canvas>
+                    <canvas id="${id}" data-node-id="${currentRenderingNodeId}" width="450" height="300" style="background:#fcfcfc; border:1px solid #ccc; width: 100%; max-width: 100%;"></canvas>
                 </div>\n`;
             }
             return false;
@@ -551,20 +551,11 @@ function renderMarkdown(text, nodeId) {
 
 function postRenderInit() {
     if (window.renderMathInElement) {
-        renderMathInElement(document.getElementById('nodes-layer'), {
-            delimiters: [
-                {left: '$$', right: '$$', display: true},
-                {left: '$', right: '$', display: false}
-            ],
-            throwOnError: false
-        });
-        renderMathInElement(document.getElementById('info-panel'), {
-            delimiters: [
-                {left: '$$', right: '$$', display: true},
-                {left: '$', right: '$', display: false}
-            ],
-            throwOnError: false
-        });
+        const conf = { delimiters: [ {left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false} ], throwOnError: false };
+        const nl = document.getElementById('nodes-layer');
+        const ip = document.getElementById('info-panel');
+        if (nl) renderMathInElement(nl, conf);
+        if (ip) renderMathInElement(ip, conf);
     }
     
     // Initialize Desmos
@@ -613,8 +604,8 @@ function postRenderInit() {
             const nodeEl = canvas.closest('.node');
             if (nodeEl) {
                 let changed = false;
-                if (node.width < 450) { node.width = 450; changed = true; }
-                if (node.height < 380) { node.height = 380; changed = true; }
+                if (node.width < 500) { node.width = 500; changed = true; }
+                if (node.height < 450) { node.height = 450; changed = true; }
                 if (changed) {
                     nodeEl.style.width = node.width + 'px';
                     nodeEl.style.minHeight = node.height + 'px';
@@ -841,7 +832,6 @@ async function loadData() {
     let loadedFromFile = false;
 
     try {
-        // 1. Try reading the exported file FIRST (Source of Truth)
         const res = await fetch('map-data.json?_=' + Date.now());
         if (res.ok) {
             const raw = await res.json();
@@ -858,7 +848,6 @@ async function loadData() {
         console.log("Fetch failed (likely due to local file:// protocol blocking). Checking local storage...");
     }
 
-    // 2. If the file is missing or blocked, pull from the live Editor memory
     if (!loadedFromFile) {
         const draft = localStorage.getItem('cm_state');
         if (draft) {
@@ -871,7 +860,6 @@ async function loadData() {
         }
     }
 
-    // 3. Render whatever we successfully loaded, or prompt manual upload
     if (mapData && mapData.maps && Object.keys(mapData.maps).length > 0) {
         hideMessage();
         const ids = Object.keys(mapData.maps);

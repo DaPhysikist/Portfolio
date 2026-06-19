@@ -1391,8 +1391,42 @@ function getDuplicateLocations(linkId) {
 // ─────────────────────────────────────────────
 //  MARKDOWN PARSER & CUSTOM EXTENSIONS
 // ─────────────────────────────────────────────
+let currentRenderingNodeId = null;
 const desmosGraphs = [];
 const circuitDrawers = [];
+
+// Toolbar Configuration
+const circTools = [
+    {k:'S', t:'Select',     icon: `<svg width="14" height="14" viewBox="0 0 14 14"><path d="M2,2 L2,11 L5,8 L7,12 L9,11 L7,7 L11,7 Z" fill="currentColor"/></svg>`},
+    {k:'W', t:'Wire',       icon: `<svg width="14" height="14" viewBox="0 0 14 14"><line x1="1" y1="7" x2="13" y2="7" stroke="currentColor" stroke-width="2"/><circle cx="1" cy="7" r="1.5" fill="currentColor"/><circle cx="13" cy="7" r="1.5" fill="currentColor"/></svg>`},
+    {k:'X', t:'Delete',     icon: `<svg width="14" height="14" viewBox="0 0 14 14"><line x1="2" y1="2" x2="12" y2="12" stroke="currentColor" stroke-width="2"/><line x1="12" y1="2" x2="2" y2="12" stroke="currentColor" stroke-width="2"/></svg>`},
+    {k:'R', t:'Resistor',   icon: `<svg width="28" height="14" viewBox="0 0 28 14"><line x1="0" y1="7" x2="5" y2="7" stroke="currentColor" stroke-width="1.5"/><polyline points="5,7 7,2 10,12 13,2 16,12 19,2 22,7" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="22" y1="7" x2="28" y2="7" stroke="currentColor" stroke-width="1.5"/></svg>`},
+    {k:'C', t:'Capacitor',  icon: `<svg width="28" height="14" viewBox="0 0 28 14"><line x1="0" y1="7" x2="11" y2="7" stroke="currentColor" stroke-width="1.5"/><line x1="11" y1="2" x2="11" y2="12" stroke="currentColor" stroke-width="2"/><line x1="17" y1="2" x2="17" y2="12" stroke="currentColor" stroke-width="2"/><line x1="17" y1="7" x2="28" y2="7" stroke="currentColor" stroke-width="1.5"/></svg>`},
+    {k:'L', t:'Inductor',   icon: `<svg width="28" height="14" viewBox="0 0 28 14"><line x1="0" y1="7" x2="4" y2="7" stroke="currentColor" stroke-width="1.5"/><path d="M4,7 A3,3 0 0,1 10,7" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10,7 A3,3 0 0,1 16,7" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M16,7 A3,3 0 0,1 22,7" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="22" y1="7" x2="28" y2="7" stroke="currentColor" stroke-width="1.5"/></svg>`},
+    {k:'D', t:'Diode',      icon: `<svg width="28" height="14" viewBox="0 0 28 14"><line x1="0" y1="7" x2="8" y2="7" stroke="currentColor" stroke-width="1.5"/><polygon points="8,3 8,11 16,7" fill="currentColor"/><line x1="16" y1="3" x2="16" y2="11" stroke="currentColor" stroke-width="1.5"/><line x1="16" y1="7" x2="28" y2="7" stroke="currentColor" stroke-width="1.5"/></svg>`},
+    {k:'Z', t:'Zener Diode',      icon: `<svg width="28" height="14" viewBox="0 0 28 14"><line x1="0" y1="7" x2="8" y2="7" stroke="currentColor" stroke-width="1.5"/><polygon points="8,3 8,11 16,7" fill="currentColor"/><polyline points="14,11 16,11 16,3 18,3" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="16" y1="7" x2="28" y2="7" stroke="currentColor" stroke-width="1.5"/></svg>`},
+    {k:'Q', t:'BJT',        icon: `<svg width="28" height="14" viewBox="0 0 28 14"><line x1="0" y1="7" x2="8" y2="7" stroke="currentColor" stroke-width="1.5"/><line x1="8" y1="2" x2="8" y2="12" stroke="currentColor" stroke-width="2"/><line x1="8" y1="4" x2="16" y2="1" stroke="currentColor" stroke-width="1.5"/><line x1="8" y1="10" x2="16" y2="13" stroke="currentColor" stroke-width="1.5"/><polygon points="13,12 16,13 15,10" fill="currentColor"/><line x1="16" y1="1" x2="16" y2="0" stroke="currentColor" stroke-width="1.5"/><line x1="16" y1="13" x2="16" y2="14" stroke="currentColor" stroke-width="1.5"/></svg>`},
+    {k:'F', t:'nMOS',       icon: `<svg width="28" height="14" viewBox="0 0 28 14"><line x1="0" y1="7" x2="8" y2="7" stroke="currentColor" stroke-width="1.5"/><line x1="8" y1="2" x2="8" y2="12" stroke="currentColor" stroke-width="2"/><line x1="10" y1="2" x2="10" y2="12" stroke="currentColor" stroke-width="1.5"/><line x1="10" y1="3.5" x2="18" y2="3.5" stroke="currentColor" stroke-width="1.5"/><line x1="10" y1="7" x2="18" y2="7" stroke="currentColor" stroke-width="1.5"/><line x1="10" y1="10.5" x2="18" y2="10.5" stroke="currentColor" stroke-width="1.5"/><polygon points="15,6 18,7 15,8" fill="currentColor"/><line x1="18" y1="3.5" x2="18" y2="0" stroke="currentColor" stroke-width="1.5"/><line x1="18" y1="10.5" x2="18" y2="14" stroke="currentColor" stroke-width="1.5"/></svg>`},
+    {k:'E', t:'pMOS',       icon: `<svg width="28" height="14" viewBox="0 0 28 14"><line x1="0" y1="7" x2="6" y2="7" stroke="currentColor" stroke-width="1.5"/><circle cx="7.5" cy="7" r="1.5" fill="none" stroke="currentColor" stroke-width="1"/><line x1="9" y1="2" x2="9" y2="12" stroke="currentColor" stroke-width="2"/><line x1="11" y1="2" x2="11" y2="12" stroke="currentColor" stroke-width="1.5"/><line x1="11" y1="3.5" x2="19" y2="3.5" stroke="currentColor" stroke-width="1.5"/><line x1="11" y1="7" x2="19" y2="7" stroke="currentColor" stroke-width="1.5"/><line x1="11" y1="10.5" x2="19" y2="10.5" stroke="currentColor" stroke-width="1.5"/><polygon points="14,6 11,7 14,8" fill="currentColor"/><line x1="19" y1="3.5" x2="19" y2="0" stroke="currentColor" stroke-width="1.5"/><line x1="19" y1="10.5" x2="19" y2="14" stroke="currentColor" stroke-width="1.5"/></svg>`},
+    {k:'P', t:'Op-Amp',     icon: `<svg width="28" height="14" viewBox="0 0 28 14"><polygon points="2,1 2,13 18,7" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="18" y1="7" x2="28" y2="7" stroke="currentColor" stroke-width="1.5"/><line x1="0" y1="4" x2="5" y2="4" stroke="currentColor" stroke-width="1.5"/><line x1="0" y1="10" x2="5" y2="10" stroke="currentColor" stroke-width="1.5"/><text x="4" y="5.5" font-size="4" fill="currentColor">+</text><text x="4" y="11.5" font-size="4" fill="currentColor">−</text></svg>`},
+    {k:'V', t:'Voltage Source',   icon: `<svg width="28" height="14" viewBox="0 0 28 14"><circle cx="14" cy="7" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="0" y1="7" x2="8" y2="7" stroke="currentColor" stroke-width="1.5"/><line x1="20" y1="7" x2="28" y2="7" stroke="currentColor" stroke-width="1.5"/><text x="11" y="5.5" font-size="4" fill="currentColor">+</text><text x="11" y="10.5" font-size="4" fill="currentColor">−</text></svg>`},
+    {k:'I', t:'Current Source',   icon: `<svg width="28" height="14" viewBox="0 0 28 14"><circle cx="14" cy="7" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="0" y1="7" x2="8" y2="7" stroke="currentColor" stroke-width="1.5"/><line x1="20" y1="7" x2="28" y2="7" stroke="currentColor" stroke-width="1.5"/><line x1="14" y1="4" x2="14" y2="10" stroke="currentColor" stroke-width="1.5"/><polygon points="12,5 14,3 16,5" fill="currentColor"/></svg>`},
+    {k:'U', t:'Dependent Voltage Src',  icon: `<svg width="28" height="14" viewBox="0 0 28 14"><polygon points="14,1 27,7 14,13 1,7" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="0" y1="7" x2="1" y2="7" stroke="currentColor" stroke-width="1.5"/><line x1="27" y1="7" x2="28" y2="7" stroke="currentColor" stroke-width="1.5"/><text x="11" y="5.5" font-size="4" fill="currentColor">+</text><text x="11" y="10.5" font-size="4" fill="currentColor">−</text></svg>`},
+    {k:'J', t:'Dependent Current Src',  icon: `<svg width="28" height="14" viewBox="0 0 28 14"><polygon points="14,1 27,7 14,13 1,7" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="0" y1="7" x2="1" y2="7" stroke="currentColor" stroke-width="1.5"/><line x1="27" y1="7" x2="28" y2="7" stroke="currentColor" stroke-width="1.5"/><line x1="14" y1="4" x2="14" y2="10" stroke="currentColor" stroke-width="1.5"/><polygon points="12,5 14,3 16,5" fill="currentColor"/></svg>`},
+    {k:'B', t:'Battery',    icon: `<svg width="28" height="14" viewBox="0 0 28 14"><line x1="0" y1="7" x2="8" y2="7" stroke="currentColor" stroke-width="1.5"/><line x1="8" y1="3" x2="8" y2="11" stroke="currentColor" stroke-width="2.5"/><line x1="12" y1="5" x2="12" y2="9" stroke="currentColor" stroke-width="1.5"/><line x1="16" y1="3" x2="16" y2="11" stroke="currentColor" stroke-width="2.5"/><line x1="20" y1="5" x2="20" y2="9" stroke="currentColor" stroke-width="1.5"/><line x1="20" y1="7" x2="28" y2="7" stroke="currentColor" stroke-width="1.5"/></svg>`},
+    {k:'G', t:'Ground',     icon: `<svg width="20" height="14" viewBox="0 0 20 14"><line x1="10" y1="0" x2="10" y2="5" stroke="currentColor" stroke-width="1.5"/><line x1="2" y1="5" x2="18" y2="5" stroke="currentColor" stroke-width="2"/><line x1="5" y1="8" x2="15" y2="8" stroke="currentColor" stroke-width="1.5"/><line x1="8" y1="11" x2="12" y2="11" stroke="currentColor" stroke-width="1.5"/></svg>`},
+    {k:'O', t:'Oscillator', icon: `<svg width="20" height="14" viewBox="0 0 20 14"><circle cx="10" cy="7" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M5,7 Q7,3 10,7 Q13,11 15,7" fill="none" stroke="currentColor" stroke-width="1.2"/></svg>`},
+    {k:'A', t:'Antenna',    icon: `<svg width="20" height="14" viewBox="0 0 20 14"><line x1="10" y1="14" x2="10" y2="7" stroke="currentColor" stroke-width="1.5"/><line x1="10" y1="7" x2="4" y2="1" stroke="currentColor" stroke-width="1.5"/><line x1="10" y1="7" x2="16" y2="1" stroke="currentColor" stroke-width="1.5"/><line x1="10" y1="7" x2="10" y2="1" stroke="currentColor" stroke-width="1.5"/></svg>`},
+    {k:'M', t:'IC',   icon: `<svg width="28" height="14" viewBox="0 0 28 14"><rect x="4" y="2" width="20" height="10" fill="none" stroke="currentColor" stroke-width="1.5"/><text x="14" y="9" font-size="5" text-anchor="middle" fill="currentColor">IC</text><line x1="0" y1="5" x2="4" y2="5" stroke="currentColor" stroke-width="1.2"/><line x1="0" y1="9" x2="4" y2="9" stroke="currentColor" stroke-width="1.2"/><line x1="24" y1="5" x2="28" y2="5" stroke="currentColor" stroke-width="1.2"/><line x1="24" y1="9" x2="28" y2="9" stroke="currentColor" stroke-width="1.2"/></svg>`},
+    {k:'N', t:'Net Label',  icon: `<svg width="28" height="14" viewBox="0 0 28 14"><circle cx="5" cy="7" r="2.5" fill="currentColor"/><text x="10" y="10" font-size="6" fill="currentColor" font-family="monospace">VCC</text></svg>`},
+    {k:'1', t:'AND Gate',   icon: `<svg width="28" height="14" viewBox="0 0 28 14"><path d="M4,2 L12,2 A7,5 0 0,1 12,12 L4,12 Z" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="0" y1="4" x2="4" y2="4" stroke="currentColor" stroke-width="1.2"/><line x1="0" y1="10" x2="4" y2="10" stroke="currentColor" stroke-width="1.2"/><line x1="19" y1="7" x2="28" y2="7" stroke="currentColor" stroke-width="1.2"/></svg>`},
+    {k:'2', t:'OR Gate',    icon: `<svg width="28" height="14" viewBox="0 0 28 14"><path d="M4,2 Q14,2 22,7 Q14,12 4,12 Q9,7 4,2 Z" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="0" y1="4" x2="6" y2="4" stroke="currentColor" stroke-width="1.2"/><line x1="0" y1="10" x2="6" y2="10" stroke="currentColor" stroke-width="1.2"/><line x1="22" y1="7" x2="28" y2="7" stroke="currentColor" stroke-width="1.2"/></svg>`},
+    {k:'3', t:'NOT Gate',   icon: `<svg width="28" height="14" viewBox="0 0 28 14"><polygon points="2,2 2,12 18,7" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="20" cy="7" r="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="0" y1="7" x2="2" y2="7" stroke="currentColor" stroke-width="1.2"/><line x1="22.5" y1="7" x2="28" y2="7" stroke="currentColor" stroke-width="1.2"/></svg>`},
+    {k:'4', t:'NAND Gate',  icon: `<svg width="28" height="14" viewBox="0 0 28 14"><path d="M4,2 L12,2 A7,5 0 0,1 12,12 L4,12 Z" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="21" cy="7" r="2" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="0" y1="4" x2="4" y2="4" stroke="currentColor" stroke-width="1.2"/><line x1="0" y1="10" x2="4" y2="10" stroke="currentColor" stroke-width="1.2"/><line x1="23" y1="7" x2="28" y2="7" stroke="currentColor" stroke-width="1.2"/></svg>`},
+    {k:'5', t:'NOR Gate',   icon: `<svg width="28" height="14" viewBox="0 0 28 14"><path d="M2,2 Q12,2 18,7 Q12,12 2,12 Q7,7 2,2 Z" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="20" cy="7" r="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="0" y1="4" x2="4" y2="4" stroke="currentColor" stroke-width="1.2"/><line x1="0" y1="10" x2="4" y2="10" stroke="currentColor" stroke-width="1.2"/><line x1="22.5" y1="7" x2="28" y2="7" stroke="currentColor" stroke-width="1.2"/></svg>`},
+    {k:'6', t:'XOR Gate',   icon: `<svg width="28" height="14" viewBox="0 0 28 14"><path d="M5,2 Q15,2 23,7 Q15,12 5,12 Q10,7 5,2 Z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M2,2 Q7,7 2,12" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="0" y1="4" x2="5" y2="4" stroke="currentColor" stroke-width="1.2"/><line x1="0" y1="10" x2="5" y2="10" stroke="currentColor" stroke-width="1.2"/><line x1="23" y1="7" x2="28" y2="7" stroke="currentColor" stroke-width="1.2"/></svg>`},
+    {k:'7', t:'XNOR Gate',  icon: `<svg width="28" height="14" viewBox="0 0 28 14"><path d="M4,2 Q13,2 19,7 Q13,12 4,12 Q9,7 4,2 Z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M1,2 Q6,7 1,12" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="21" cy="7" r="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="0" y1="4" x2="4" y2="4" stroke="currentColor" stroke-width="1.2"/><line x1="0" y1="10" x2="4" y2="10" stroke="currentColor" stroke-width="1.2"/><line x1="23.5" y1="7" x2="28" y2="7" stroke="currentColor" stroke-width="1.2"/></svg>`},
+];
 
 if (window.marked) {
     const customRenderer = {
@@ -1406,17 +1440,19 @@ if (window.marked) {
                 const title = lang.substring(7).trim() || 'Circuit Schematic';
                 const id = `circuit-${Math.random().toString(36).substr(2, 9)}`;
                 circuitDrawers.push(id);
+                
+                let tbHtml = `<div class="circuit-toolbar" style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:6px; background:rgba(0,0,0,0.03); padding:6px; border-radius:6px; border:1px solid var(--border-color);">`;
+circTools.forEach(t => {
+    tbHtml += `<button class="circuit-tool-btn" data-tool="${t.k}" title="${t.t} (${t.k})" style="padding:3px 6px; background:var(--card-bg); border:1px solid var(--border-color); border-radius:4px; cursor:pointer; color:var(--text-color); display:flex; align-items:center; justify-content:center; transition:all 0.15s; min-width:28px; height:28px;">${t.icon}</button>`;
+});
+tbHtml += `</div><div style="font-size:10px; color:#888; margin-bottom:6px; display:flex; justify-content:space-between;"><strong style="color:var(--text-color)">${escHtml(title)}</strong><span><b>Y</b>: Rotate 45°</span></div>`;
+
                 return `<div class="circuit-container" style="border: 1px solid var(--border-color); padding: 8px; border-radius: 4px; margin: 10px 0; background: #fff;">
-                    <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:6px; font-family:sans-serif;">
-                        <strong style="font-size:12px; color:var(--text-color);">${escHtml(title)}</strong>
-                        <div style="font-size:9px; color:#888; text-align:right; line-height:1.2;">
-                            <b>Space</b>: Rot | <b>R,C,L,D,Z,Q,F,E,O,I,V,J,U,B,G,P,A,M,N,W</b> | <b>X/Del</b>: Del
-                        </div>
-                    </div>
-                    <canvas id="${id}" width="400" height="250" style="background:#fcfcfc; border:1px solid #ccc; cursor:crosshair; width: 100%;"></canvas>
+                    ${tbHtml}
+                    <canvas id="${id}" data-node-id="${currentRenderingNodeId}" width="450" height="300" style="background:#fcfcfc; border:1px solid #ccc; width: 100%; max-width: 100%; touch-action: none;"></canvas>
                 </div>\n`;
             }
-            return false; // Fallback to default
+            return false;
         },
         link(href, title, text) {
             if (href.includes('diagrams.net') || href.includes('draw.io')) {
@@ -1425,14 +1461,15 @@ if (window.marked) {
                     <iframe src="${embedUrl}&embed=1" style="position:absolute; top:0; left:0; width:100%; height:100%; border:0;" allowfullscreen></iframe>
                 </div>\n`;
             }
-            return false; // Fallback
+            return false;
         }
     };
     marked.use({ renderer: customRenderer });
 }
 
-function renderMarkdown(text) {
-    if (!text) return '(click to add description)';
+function renderMarkdown(text, nodeId) {
+    if (!text) return '';
+    currentRenderingNodeId = nodeId;
     let html = text;
     
     html = html.replace(/!\[video\]\((.*?)\)/gi, '<video controls style="max-width:100%; margin:4px 0;"><source src="$1"></video>');
@@ -1440,12 +1477,10 @@ function renderMarkdown(text) {
     html = html.replace(/!\[(?:embed|pdf|ppt)\]\((.*?)\)/gi, '<iframe src="$1" style="width:100%; height:150px; border:1px solid var(--border-color); border-radius:4px; margin:4px 0;" allowfullscreen></iframe>');
 
     const mathBlocks = [];
-    
     html = html.replace(/\$\$([\s\S]*?)\$\$/g, (match) => {
         mathBlocks.push(match);
         return `@@MATH_BLOCK_${mathBlocks.length - 1}@@`;
     });
-    
     html = html.replace(/\$([^$\n]+?)\$/g, (match) => {
         mathBlocks.push(match);
         return `@@MATH_BLOCK_${mathBlocks.length - 1}@@`;
@@ -1459,39 +1494,40 @@ function renderMarkdown(text) {
         html = html.replace(`@@MATH_BLOCK_${i}@@`, () => escHtml(block));
     });
 
+    currentRenderingNodeId = null;
     return html;
 }
 
-// Interactive Subsystem Init
 function initDesmosCalculators() {
     desmosGraphs.forEach(graph => {
         const element = document.getElementById(graph.id);
-        if (element && !element.dataset.initialized) {
-            element.dataset.initialized = 'true';
-            
-            const nodeEl = element.closest('.node');
-            if (nodeEl) {
-                const nodeId = nodeEl.id.replace('node-', '');
-                const node = currentMapData().nodes[nodeId];
+        if (!element || element.dataset.initialized) return;
+        element.dataset.initialized = 'true';
+
+        const nodeEl = element.closest('.node');
+        if (nodeEl) {
+            const nodeId = nodeEl.id.replace('node-', '');
+            const node = currentMapData().nodes[nodeId];
+            if (node) {
                 let changed = false;
-                if (node.width < 400) { node.width = 400; changed = true; }
-                if (node.height < 450) { node.height = 450; changed = true; }
+                if ((node.width || 0) < 400)  { node.width  = 400; changed = true; }
+                if ((node.height || 0) < 450) { node.height = 450; changed = true; }
                 if (changed) {
-                    nodeEl.style.width = node.width + 'px';
+                    nodeEl.style.width    = node.width  + 'px';
                     nodeEl.style.minHeight = node.height + 'px';
                     redrawEdges();
                 }
             }
+        }
 
-            element.addEventListener('mousedown', e => e.stopPropagation());
-            element.addEventListener('touchstart', e => e.stopPropagation(), {passive: false});
+        element.addEventListener('mousedown', e => e.stopPropagation());
+        element.addEventListener('touchstart', e => e.stopPropagation(), { passive: false });
 
-            if (window.Desmos) {
-                const calculator = Desmos.GraphingCalculator(element, { expressionsPixelRatio: 2 });
-                graph.expressions.forEach((expr, i) => {
-                    if (expr.trim()) calculator.setExpression({ id: 'graph'+i, latex: expr });
-                });
-            }
+        if (window.Desmos) {
+            const calculator = Desmos.GraphingCalculator(element, { expressionsPixelRatio: 2 });
+            graph.expressions.forEach((expr, i) => {
+                if (expr.trim()) calculator.setExpression({ id: 'graph' + i, latex: expr });
+            });
         }
     });
     desmosGraphs.length = 0;
@@ -1503,97 +1539,354 @@ function initCircuitDrawers() {
         if (!canvas || canvas.dataset.initialized) return;
         canvas.dataset.initialized = 'true';
 
+        // ── Resolve node & persisted element array ──────────────────
         let elements = [];
-        const GRID = 20;
-        const snap = v => Math.round(v / GRID) * GRID;
-
-        // Persist and Load Circuit Data from the Node State
         const nodeEl = canvas.closest('.node');
+        let nodeId = null;
+        let cIdx   = 0;
+
         if (nodeEl) {
-            const nodeId = nodeEl.id.replace('node-', '');
+            nodeId = nodeEl.id.replace('node-', '');
             const node = currentMapData().nodes[nodeId];
-            
-            // Auto-resize
-            let changed = false;
-            if (node.width < 450) { node.width = 450; changed = true; }
-            if (node.height < 380) { node.height = 380; changed = true; }
-            if (changed) {
-                nodeEl.style.width = node.width + 'px';
-                nodeEl.style.minHeight = node.height + 'px';
-                redrawEdges();
-            }
+            if (node) {
+                let changed = false;
+                if ((node.width  || 0) < 500) { node.width  = 500; changed = true; }
+                if ((node.height || 0) < 450) { node.height = 450; changed = true; }
+                if (changed) {
+                    nodeEl.style.width     = node.width  + 'px';
+                    nodeEl.style.minHeight = node.height + 'px';
+                    redrawEdges();
+                }
 
-            // Sync array
-            if (!node.circuitData) node.circuitData = {};
-            const canvases = Array.from(nodeEl.querySelectorAll('canvas[id^="circuit-"]'));
-            const cIdx = canvases.indexOf(canvas);
-            
-            if (!node.circuitData[cIdx]) node.circuitData[cIdx] = [];
-            elements = node.circuitData[cIdx]; // Direct reference binding
+                if (!node.circuitData) node.circuitData = {};
+                const canvases = Array.from(nodeEl.querySelectorAll('canvas[id^="circuit-"]'));
+                cIdx = canvases.indexOf(canvas);
+                if (!node.circuitData[cIdx]) node.circuitData[cIdx] = [];
+                elements = node.circuitData[cIdx];
+            }
         }
-        
-        const ctx = canvas.getContext('2d');
-        let currentTool = 'W';
-        let currentRot = 0;
-        let wireStart = null;
-        let mouseX = 0, mouseY = 0;
-        let isHovered = false;
 
-        drawCircuit();
+        // ── Undo/Redo history ────────────────────────────────────
+        const MAX_HISTORY = 50;
+        let history = [JSON.stringify(elements)];
+        let historyIdx = 0;
 
-        canvas.addEventListener('mouseenter', () => isHovered = true);
-        canvas.addEventListener('mouseleave', () => { isHovered = false; wireStart = null; drawCircuit(); });
+        function pushHistory() {
+            // Drop any redo states ahead of current position
+            history = history.slice(0, historyIdx + 1);
+            history.push(JSON.stringify(elements));
+            if (history.length > MAX_HISTORY) history.shift();
+            else historyIdx++;
+        }
 
-        window.addEventListener('keydown', (e) => {
-            if (!isHovered) return; 
-            const key = e.key.toUpperCase();
-            
-            if (e.key === ' ') {
-                currentRot = (currentRot + 90) % 360;
-                e.preventDefault();
-                drawCircuit();
-            } else if (['R', 'C', 'L', 'D', 'Z', 'Q', 'F', 'E', 'O', 'I', 'V', 'J', 'U', 'B', 'G', 'P', 'A', 'M', 'N', 'W', 'X', '1', '2', '3', '4', '5', '6', '7'].includes(key)) {
-                currentTool = key;
-                wireStart = null;
-                drawCircuit();
-            } else if (e.key === 'Delete') {
-                currentTool = 'X';
-                wireStart = null;
-                drawCircuit();
+        function applyHistory(snapshot) {
+            const parsed = JSON.parse(snapshot);
+            elements.length = 0;
+            parsed.forEach(el => elements.push(el));
+            // Sync back to node's persisted data
+            if (nodeEl) {
+                const nodeId2 = nodeEl.id.replace('node-', '');
+                const node2 = currentMapData().nodes[nodeId2];
+                if (node2 && node2.circuitData) node2.circuitData[cIdx] = elements;
             }
+            if (typeof saveState === 'function') saveState();
+            drawCircuit();
+        }
+
+        function undo() {
+            if (historyIdx <= 0) return;
+            historyIdx--;
+            applyHistory(history[historyIdx]);
+        }
+
+        function redo() {
+            if (historyIdx >= history.length - 1) return;
+            historyIdx++;
+            applyHistory(history[historyIdx]);
+        }
+
+        const ctx    = canvas.getContext('2d');
+        const GRID   = 20;
+        const snap   = v => Math.round(v / GRID) * GRID;
+
+        // ── Tool state — NOT shared across instances ─────────────────
+        let currentTool = 'S';
+        let currentRot  = 0;
+        let wireStart   = null;
+        let mouseX = 0, mouseY = 0;
+
+        // Selection / drag state
+        let selectedIdx  = -1;
+        let isDragging   = false;
+        let dragStart    = { x: 0, y: 0 };
+        let origElState  = null;
+
+        // ── Toolbar buttons ──────────────────────────────────────────
+        const toolBtns = canvas.parentElement.querySelectorAll('.circuit-tool-btn');
+
+        function setTool(k) {
+            currentTool = k;
+            if (k !== 'S') { selectedIdx = -1; }
+            wireStart = null;
+            toolBtns.forEach(b => {
+                const active = b.dataset.tool === k;
+                b.style.background   = active ? 'var(--primary-color)' : 'var(--card-bg)';
+                b.style.color        = active ? '#fff'                  : 'var(--text-color)';
+                b.style.borderColor  = active ? 'var(--primary-color)' : 'var(--border-color)';
+            });
+            drawCircuit();
+        }
+
+        toolBtns.forEach(btn => {
+            // mousedown so the tool is set BEFORE the canvas sees any events
+            btn.addEventListener('mousedown', e => {
+                e.preventDefault();   // prevent focus loss from canvas area
+                e.stopPropagation();
+            });
+            btn.addEventListener('click', e => {
+                e.stopPropagation();
+                setTool(btn.dataset.tool);
+            });
         });
 
-        canvas.addEventListener('mousemove', (e) => {
-            const rect = canvas.getBoundingClientRect();
-            mouseX = snap((e.clientX - rect.left) * (canvas.width / rect.width));
-            mouseY = snap((e.clientY - rect.top) * (canvas.height / rect.height));
-            if (isHovered) drawCircuit(); 
-        });
+        setTool('S'); // draw initial highlight
 
-        canvas.addEventListener('click', (e) => {
-            const rect = canvas.getBoundingClientRect();
-            const x = snap((e.clientX - rect.left) * (canvas.width / rect.width));
-            const y = snap((e.clientY - rect.top) * (canvas.height / rect.height));
-            
-            if (currentTool === 'X') {
-                let minDist = Infinity;
-                let removeIdx = -1;
-                elements.forEach((el, idx) => {
-                    let dist;
-                    if (el.type === 'W') {
-                        const l2 = (el.x2-el.x1)**2 + (el.y2-el.y1)**2;
-                        if (l2 === 0) dist = Math.hypot(x-el.x1, y-el.y1);
-                        else {
-                            let t = ((x-el.x1)*(el.x2-el.x1) + (y-el.y1)*(el.y2-el.y1)) / l2;
-                            t = Math.max(0, Math.min(1, t));
-                            dist = Math.hypot(x - (el.x1 + t*(el.x2-el.x1)), y - (el.y1 + t*(el.y2-el.y1)));
+        // ── Canvas-local keyboard handler ────────────────────────────
+        // Instead of relying on isHovered (which breaks when moving
+        // from toolbar button → canvas), we use pointer capture on
+        // the container div.
+        const container = canvas.closest('.circuit-container');
+        if (container) {
+            container.addEventListener('keydown', e => {
+                if (document.activeElement.tagName === 'INPUT' ||
+                    document.activeElement.tagName === 'TEXTAREA') return;
+                const key = e.key.toUpperCase();
+
+                if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    undo();
+                    return;
+                }
+                if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    redo();
+                    return;
+                }
+
+                if (e.key === 'Escape') {
+                    setTool('S');
+                    wireStart = null;
+                    return;
+                }
+
+                if ((e.key === 'y' || e.key === 'Y') && !e.ctrlKey && !e.metaKey) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (currentTool === 'S' && selectedIdx > -1) {
+                        const el = elements[selectedIdx];
+                        if (el && el.type !== 'W') {
+                            el.rot = ((el.rot || 0) + 45) % 360;
+                            pushHistory();
+                            if (typeof saveState === 'function') saveState();
                         }
                     } else {
-                        dist = Math.hypot(el.x - x, el.y - y);
+                        currentRot = (currentRot + 45) % 360;
                     }
-                    if (dist < 15 && dist < minDist) { minDist = dist; removeIdx = idx; }
+                    drawCircuit();
+                    return;
+                }
+
+                if (e.key === 'Delete' || e.key === 'Backspace') {
+                    e.stopPropagation(); // don't trigger global delete-node
+                    setTool('X');
+                    return;
+                }
+
+                const match = circTools.find(t => t.k === key);
+                if (match) {
+                    e.stopPropagation();
+                    setTool(key);
+                }
+            });
+        }
+
+        // Also keep the global keydown for when canvas itself is hovered
+        // but the container isn't focused — track hover on the container
+        let containerHovered = false;
+        if (container) {
+            container.addEventListener('mouseenter', () => { containerHovered = true; });
+            container.addEventListener('mouseleave', () => { containerHovered = false; });
+        }
+
+        const globalKeyHandler = e => {
+            if (!containerHovered) return;
+            if (document.activeElement.tagName === 'INPUT' ||
+                document.activeElement.tagName === 'TEXTAREA' ||
+                document.activeElement.isContentEditable) return;
+
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+                e.preventDefault();
+                e.stopPropagation();
+                undo();
+                return;
+            }
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) {
+                e.preventDefault();
+                e.stopPropagation();
+                redo();
+                return;
+            }
+
+            if (e.key === 'Escape') {
+                setTool('S');
+                wireStart = null;
+                return;
+            }
+
+            const key = e.key.toUpperCase();
+            if ((e.key === 'y' || e.key === 'Y') && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (currentTool === 'S' && selectedIdx > -1) {
+                    const el = elements[selectedIdx];
+                    if (el && el.type !== 'W') {
+                        el.rot = ((el.rot || 0) + 45) % 360;
+                        pushHistory();
+                        if (typeof saveState === 'function') saveState();
+                    }
+                } else {
+                    currentRot = (currentRot + 45) % 360;
+                }
+                drawCircuit();
+                return;
+            }
+            if (e.key === 'Delete' || e.key === 'Backspace') {
+                e.stopPropagation();
+                setTool('X');
+                return;
+            }
+            const match = circTools.find(t => t.k === key);
+            if (match) { e.stopPropagation(); setTool(key); }
+        };
+        window.addEventListener('keydown', globalKeyHandler);
+
+        // Clean up global handler if canvas is ever removed
+        const observer = new MutationObserver(() => {
+            if (!document.contains(canvas)) {
+                window.removeEventListener('keydown', globalKeyHandler);
+                observer.disconnect();
+            }
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+
+        // ── Geometry helpers ─────────────────────────────────────────
+        function getCanvasPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: snap((e.clientX - rect.left) * (canvas.width  / rect.width)),
+                y: snap((e.clientY - rect.top)  * (canvas.height / rect.height)),
+            };
+        }
+
+        function getDist(el, x, y) {
+            if (el.type === 'W') {
+                const l2 = (el.x2-el.x1)**2 + (el.y2-el.y1)**2;
+                if (l2 === 0) return Math.hypot(x - el.x1, y - el.y1);
+                let t = ((x-el.x1)*(el.x2-el.x1) + (y-el.y1)*(el.y2-el.y1)) / l2;
+                t = Math.max(0, Math.min(1, t));
+                return Math.hypot(x - (el.x1 + t*(el.x2-el.x1)),
+                                  y - (el.y1 + t*(el.y2-el.y1)));
+            }
+            return Math.hypot(el.x - x, el.y - y);
+        }
+
+        // ── Mouse events ─────────────────────────────────────────────
+        canvas.addEventListener('mousemove', e => {
+            e.stopPropagation();
+            const pos = getCanvasPos(e);
+            mouseX = pos.x; mouseY = pos.y;
+
+            if (currentTool === 'S' && isDragging && selectedIdx > -1) {
+                const dx = mouseX - dragStart.x;
+                const dy = mouseY - dragStart.y;
+                const el = elements[selectedIdx];
+                if (el.type === 'W') {
+                    el.x1 = origElState.x1 + dx; el.y1 = origElState.y1 + dy;
+                    el.x2 = origElState.x2 + dx; el.y2 = origElState.y2 + dy;
+                } else {
+                    el.x = origElState.x + dx;
+                    el.y = origElState.y + dy;
+                }
+            }
+            drawCircuit();
+        });
+
+        canvas.addEventListener('mouseenter', e => { e.stopPropagation(); drawCircuit(); });
+        canvas.addEventListener('mouseleave', e => {
+            e.stopPropagation();
+            mouseX = -999; mouseY = -999; // move preview off screen
+            if (isDragging) {
+                isDragging = false;
+                pushHistory();
+                if (typeof saveState === 'function') saveState();
+            }
+            drawCircuit();
+        });
+
+        canvas.addEventListener('mousedown', e => {
+            e.stopPropagation();
+            e.preventDefault();
+
+            if (currentTool !== 'S') return;
+
+            const pos = getCanvasPos(e);
+            let minDist = Infinity, foundIdx = -1;
+            elements.forEach((el, idx) => {
+                const d = getDist(el, pos.x, pos.y);
+                if (d < 20 && d < minDist) { minDist = d; foundIdx = idx; }
+            });
+
+            selectedIdx = foundIdx;
+            if (foundIdx > -1) {
+                isDragging  = true;
+                dragStart   = { x: pos.x, y: pos.y };
+                const sel   = elements[foundIdx];
+                origElState = sel.type === 'W'
+                    ? { x1: sel.x1, y1: sel.y1, x2: sel.x2, y2: sel.y2 }
+                    : { x: sel.x, y: sel.y };
+            }
+            drawCircuit();
+        });
+
+        canvas.addEventListener('mouseup', e => {
+            e.stopPropagation();
+            if (isDragging) {
+                isDragging = false;
+                pushHistory();
+                if (typeof saveState === 'function') saveState();
+                drawCircuit();
+            }
+        });
+
+        canvas.addEventListener('click', e => {
+            e.stopPropagation();
+
+            // Select tool: handled by mousedown/up
+            if (currentTool === 'S') return;
+
+            const pos = getCanvasPos(e);
+            const x = pos.x, y = pos.y;
+
+            if (currentTool === 'X') {
+                let minDist = Infinity, removeIdx = -1;
+                elements.forEach((el, idx) => {
+                    const d = getDist(el, x, y);
+                    if (d < 20 && d < minDist) { minDist = d; removeIdx = idx; }
                 });
-                if (removeIdx > -1) elements.splice(removeIdx, 1);
+                if (removeIdx > -1) { elements.splice(removeIdx, 1); selectedIdx = -1; }
+
             } else if (currentTool === 'W') {
                 if (!wireStart) {
                     wireStart = { x, y };
@@ -1601,93 +1894,91 @@ function initCircuitDrawers() {
                     if (wireStart.x !== x || wireStart.y !== y) {
                         elements.push({ type: 'W', x1: wireStart.x, y1: wireStart.y, x2: x, y2: y });
                     }
-                    wireStart = null; 
+                    wireStart = null;
                 }
+
             } else if (currentTool === 'M') {
-                const label = prompt("Enter IC Label (e.g. 555 Timer):");
+                const label = prompt('Enter IC Label (e.g. 555 Timer):');
                 if (label !== null) elements.push({ type: 'M', x, y, rot: currentRot, label });
+
             } else if (currentTool === 'N') {
-                const label = prompt("Enter Net Label (e.g. VCC, DATA):");
+                const label = prompt('Enter Net Label (e.g. VCC, DATA):');
                 if (label !== null) elements.push({ type: 'N', x, y, rot: currentRot, label });
+
             } else {
                 elements.push({ type: currentTool, x, y, rot: currentRot });
             }
-            
-            saveState(); 
+
+            pushHistory();
+            if (typeof saveState === 'function') saveState();
             drawCircuit();
-            e.stopPropagation(); 
         });
 
-        canvas.addEventListener('mousedown', e => e.stopPropagation()); 
+        // Stop all pointer events from bubbling up to the node drag handler
+        canvas.addEventListener('touchstart',  e => e.stopPropagation(), { passive: false });
+        canvas.addEventListener('touchmove',   e => e.stopPropagation(), { passive: false });
+        canvas.addEventListener('touchend',    e => e.stopPropagation());
 
+        // ── Drawing ──────────────────────────────────────────────────
         function drawShape(ctx, type, label) {
             ctx.beginPath();
             if (type === 'R') {
                 ctx.moveTo(-20, 0); ctx.lineTo(-15, 0);
-                ctx.lineTo(-10, -8); ctx.lineTo(0, 8);
-                ctx.lineTo(10, -8); ctx.lineTo(15, 0);
-                ctx.lineTo(20, 0); ctx.stroke();
+                ctx.lineTo(-10, -8); ctx.lineTo(0, 8); ctx.lineTo(10, -8);
+                ctx.lineTo(15, 0); ctx.lineTo(20, 0); ctx.stroke();
             } else if (type === 'C') {
                 ctx.moveTo(-15, 0); ctx.lineTo(-4, 0);
-                ctx.moveTo(15, 0); ctx.lineTo(4, 0);
+                ctx.moveTo(15, 0);  ctx.lineTo(4, 0);
                 ctx.moveTo(-4, -12); ctx.lineTo(-4, 12);
-                ctx.moveTo(4, -12); ctx.lineTo(4, 12);
+                ctx.moveTo( 4, -12); ctx.lineTo( 4, 12);
                 ctx.stroke();
             } else if (type === 'L') {
                 ctx.moveTo(-20, 0); ctx.lineTo(-15, 0);
-                for(let i=0; i<3; i++) ctx.arc(-10 + (i*10), 0, 5, Math.PI, 0);
+                for (let i = 0; i < 3; i++) ctx.arc(-10 + i*10, 0, 5, Math.PI, 0);
                 ctx.lineTo(20, 0); ctx.stroke();
             } else if (type === 'D') {
-                ctx.moveTo(-8, -8); ctx.lineTo(-8, 8); ctx.lineTo(8, 0); ctx.closePath();
-                ctx.stroke();
+                ctx.moveTo(-8, -8); ctx.lineTo(-8, 8); ctx.lineTo(8, 0); ctx.closePath(); ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(8, -8); ctx.lineTo(8, 8); ctx.stroke();
             } else if (type === 'Z') {
-                // Zener Diode
-                ctx.moveTo(-8, -8); ctx.lineTo(-8, 8); ctx.lineTo(8, 0); ctx.closePath();
-                ctx.stroke();
-                ctx.beginPath(); 
-                ctx.moveTo(12, -8); ctx.lineTo(8, -8); ctx.lineTo(8, 8); ctx.lineTo(4, 8);
-                ctx.stroke();
-            } else if (type === 'Q') {
-                // BJT (NPN)
-                ctx.moveTo(-15, 0); ctx.lineTo(-5, 0); // Base
-                ctx.moveTo(-5, -10); ctx.lineTo(-5, 10); // Plate
-                ctx.moveTo(-5, -5); ctx.lineTo(5, -15); ctx.lineTo(5, -20); // Collector
-                ctx.moveTo(-5, 5); ctx.lineTo(5, 15); ctx.lineTo(5, 20); // Emitter
-                ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(5, 15); ctx.lineTo(2, 10); ctx.lineTo(0, 14); ctx.fill(); // Arrow
-            } else if (type === 'F') {
-                // MOSFET (N-Channel)
-                ctx.moveTo(-15, 0); ctx.lineTo(-5, 0); // Gate
-                ctx.moveTo(-5, -10); ctx.lineTo(-5, 10); // Gate Plate
-                ctx.moveTo(-2, -10); ctx.lineTo(-2, -3); // Drain Plate
-                ctx.moveTo(-2, -2); ctx.lineTo(-2, 2);   // Bulk Plate
-                ctx.moveTo(-2, 3); ctx.lineTo(-2, 10);   // Source Plate
-                ctx.moveTo(-2, -6); ctx.lineTo(10, -6); ctx.lineTo(10, -20); // Drain Wire
-                ctx.moveTo(-2, 6); ctx.lineTo(10, 6); ctx.lineTo(10, 20); // Source Wire
-                ctx.moveTo(-2, 0); ctx.lineTo(10, 0); ctx.lineTo(10, 6); // Bulk Wire
-                ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(2, 0); ctx.lineTo(6, -3); ctx.lineTo(6, 3); ctx.fill(); // Arrow IN
-            } else if (type === 'E') {
-                // MOSFET (P-Channel)
-                ctx.moveTo(-15, 0); ctx.lineTo(-10, 0); // Gate
-                ctx.stroke();
-                ctx.beginPath(); ctx.arc(-7.5, 0, 2.5, 0, 2*Math.PI); ctx.stroke(); // Gate bubble
+                ctx.moveTo(-8, -8); ctx.lineTo(-8, 8); ctx.lineTo(8, 0); ctx.closePath(); ctx.stroke();
                 ctx.beginPath();
-                ctx.moveTo(-5, -10); ctx.lineTo(-5, 10); // Gate Plate
-                ctx.moveTo(-2, -10); ctx.lineTo(-2, -3); // Drain Plate
-                ctx.moveTo(-2, -2); ctx.lineTo(-2, 2);   // Bulk Plate
-                ctx.moveTo(-2, 3); ctx.lineTo(-2, 10);   // Source Plate
-                ctx.moveTo(-2, -6); ctx.lineTo(10, -6); ctx.lineTo(10, -20); // Drain Wire
-                ctx.moveTo(-2, 6); ctx.lineTo(10, 6); ctx.lineTo(10, 20); // Source Wire
-                ctx.moveTo(-2, 0); ctx.lineTo(10, 0); ctx.lineTo(10, 6); // Bulk Wire
+                ctx.moveTo(12, -8); ctx.lineTo(8, -8); ctx.lineTo(8, 8); ctx.lineTo(4, 8); ctx.stroke();
+            } else if (type === 'Q') {
+                ctx.moveTo(-15, 0); ctx.lineTo(-5, 0);
+                ctx.moveTo(-5, -10); ctx.lineTo(-5, 10);
+                ctx.moveTo(-5, -5); ctx.lineTo(5, -15); ctx.lineTo(5, -20);
+                ctx.moveTo(-5,  5); ctx.lineTo(5,  15); ctx.lineTo(5,  20);
                 ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(2, -3); ctx.lineTo(2, 3); ctx.fill(); // Arrow OUT
+                ctx.beginPath(); ctx.moveTo(5, 15); ctx.lineTo(2, 10); ctx.lineTo(0, 14); ctx.fill();
+            } else if (type === 'F') {
+                ctx.moveTo(-15, 0); ctx.lineTo(-5, 0);
+                ctx.moveTo(-5, -10); ctx.lineTo(-5, 10);
+                ctx.moveTo(-2, -10); ctx.lineTo(-2, -3);
+                ctx.moveTo(-2, -2);  ctx.lineTo(-2,  2);
+                ctx.moveTo(-2,  3);  ctx.lineTo(-2, 10);
+                ctx.moveTo(-2, -6);  ctx.lineTo(10, -6); ctx.lineTo(10, -20);
+                ctx.moveTo(-2,  6);  ctx.lineTo(10,  6); ctx.lineTo(10,  20);
+                ctx.moveTo(-2,  0);  ctx.lineTo(10,  0); ctx.lineTo(10,  6);
+                ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(2, 0); ctx.lineTo(6, -3); ctx.lineTo(6, 3); ctx.fill();
+            } else if (type === 'E') {
+                ctx.moveTo(-15, 0); ctx.lineTo(-10, 0); ctx.stroke();
+                ctx.beginPath(); ctx.arc(-7.5, 0, 2.5, 0, 2*Math.PI); ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(-5, -10); ctx.lineTo(-5, 10);
+                ctx.moveTo(-2, -10); ctx.lineTo(-2, -3);
+                ctx.moveTo(-2, -2);  ctx.lineTo(-2,  2);
+                ctx.moveTo(-2,  3);  ctx.lineTo(-2, 10);
+                ctx.moveTo(-2, -6);  ctx.lineTo(10, -6); ctx.lineTo(10, -20);
+                ctx.moveTo(-2,  6);  ctx.lineTo(10,  6); ctx.lineTo(10,  20);
+                ctx.moveTo(-2,  0);  ctx.lineTo(10,  0); ctx.lineTo(10,  6);
+                ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(2, -3); ctx.lineTo(2, 3); ctx.fill();
             } else if (type === 'O') {
                 ctx.arc(0, 0, 12, 0, 2*Math.PI); ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(-6, 0);
                 ctx.quadraticCurveTo(-3, -6, 0, 0);
-                ctx.quadraticCurveTo(3, 6, 6, 0); ctx.stroke();
+                ctx.quadraticCurveTo( 3,  6, 6, 0); ctx.stroke();
             } else if (type === 'I') {
                 ctx.arc(0, 0, 12, 0, 2*Math.PI); ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(0, 7); ctx.lineTo(0, -7); ctx.stroke();
@@ -1695,36 +1986,33 @@ function initCircuitDrawers() {
             } else if (type === 'V') {
                 ctx.arc(0, 0, 12, 0, 2*Math.PI); ctx.stroke();
                 ctx.font = '12px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                ctx.fillText('+', 0, -5); ctx.fillText('-', 0, 5);
+                ctx.fillText('+', 0, -5); ctx.fillText('−', 0, 5);
             } else if (type === 'J') {
-                // Dependent Current Source
                 ctx.moveTo(0, -14); ctx.lineTo(14, 0); ctx.lineTo(0, 14); ctx.lineTo(-14, 0); ctx.closePath(); ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(0, 7); ctx.lineTo(0, -7); ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(-3, -3); ctx.lineTo(0, -7); ctx.lineTo(3, -3); ctx.stroke();
             } else if (type === 'U') {
-                // Dependent Voltage Source
                 ctx.moveTo(0, -14); ctx.lineTo(14, 0); ctx.lineTo(0, 14); ctx.lineTo(-14, 0); ctx.closePath(); ctx.stroke();
                 ctx.font = '12px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                ctx.fillText('+', 0, -5); ctx.fillText('-', 0, 5);
+                ctx.fillText('+', 0, -5); ctx.fillText('−', 0, 5);
             } else if (type === 'B') {
                 ctx.moveTo(-6, -12); ctx.lineTo(-6, 12);
-                ctx.moveTo(-2, -6);  ctx.lineTo(-2, 6);
-                ctx.moveTo(2, -12);  ctx.lineTo(2, 12);
-                ctx.moveTo(6, -6);   ctx.lineTo(6, 6); ctx.stroke();
+                ctx.moveTo(-2, -6);  ctx.lineTo(-2,  6);
+                ctx.moveTo( 2, -12); ctx.lineTo( 2, 12);
+                ctx.moveTo( 6, -6);  ctx.lineTo( 6,  6); ctx.stroke();
             } else if (type === 'G') {
                 ctx.moveTo(0, -10); ctx.lineTo(0, 0);
                 ctx.moveTo(-10, 0); ctx.lineTo(10, 0);
-                ctx.moveTo(-6, 4); ctx.lineTo(6, 4);
-                ctx.moveTo(-2, 8); ctx.lineTo(2, 8); ctx.stroke();
+                ctx.moveTo( -6, 4); ctx.lineTo( 6, 4);
+                ctx.moveTo( -2, 8); ctx.lineTo( 2, 8); ctx.stroke();
             } else if (type === 'P') {
-                ctx.moveTo(-15, -15); ctx.lineTo(15, 0); ctx.lineTo(-15, 15); ctx.closePath();
-                ctx.stroke();
+                ctx.moveTo(-15, -15); ctx.lineTo(15, 0); ctx.lineTo(-15, 15); ctx.closePath(); ctx.stroke();
                 ctx.font = '10px monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-                ctx.fillText('+', -12, -7); ctx.fillText('-', -12, 7);
+                ctx.fillText('+', -12, -7); ctx.fillText('−', -12, 7);
             } else if (type === 'A') {
-                ctx.moveTo(0, 10); ctx.lineTo(0, -5); ctx.lineTo(-8, -15);
-                ctx.moveTo(0, -5); ctx.lineTo(8, -15);
-                ctx.moveTo(0, -5); ctx.lineTo(0, -15); ctx.stroke();
+                ctx.moveTo(0, 10); ctx.lineTo(0, -5);
+                ctx.lineTo(-8, -15); ctx.moveTo(0, -5); ctx.lineTo(8, -15);
+                ctx.moveTo(0, -5);   ctx.lineTo(0, -15); ctx.stroke();
             } else if (type === 'M') {
                 ctx.font = '12px sans-serif';
                 const w = Math.max(40, ctx.measureText(label || 'IC').width + 16);
@@ -1739,58 +2027,52 @@ function initCircuitDrawers() {
                 ctx.font = '12px monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
                 ctx.fillText(label || 'NET', 4, -4);
             } else if (type === '1') {
-                // AND
-                ctx.moveTo(-10, -10); ctx.lineTo(0, -10); ctx.arc(0, 0, 10, -Math.PI/2, Math.PI/2); ctx.lineTo(-10, 10); ctx.closePath(); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(-15, -5); ctx.lineTo(-10, -5); ctx.moveTo(-15, 5); ctx.lineTo(-10, 5); ctx.moveTo(10, 0); ctx.lineTo(15, 0); ctx.stroke();
+                ctx.moveTo(-10,-10); ctx.lineTo(0,-10); ctx.arc(0,0,10,-Math.PI/2,Math.PI/2); ctx.lineTo(-10,10); ctx.closePath(); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-15,-5); ctx.lineTo(-10,-5); ctx.moveTo(-15,5); ctx.lineTo(-10,5); ctx.moveTo(10,0); ctx.lineTo(15,0); ctx.stroke();
             } else if (type === '2') {
-                // OR
-                ctx.moveTo(-10, -12); ctx.quadraticCurveTo(5, -12, 15, 0); ctx.quadraticCurveTo(5, 12, -10, 12); ctx.quadraticCurveTo(0, 0, -10, -12); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(-15, -5); ctx.lineTo(-6, -5); ctx.moveTo(-15, 5); ctx.lineTo(-6, 5); ctx.moveTo(15, 0); ctx.lineTo(20, 0); ctx.stroke();
+                ctx.moveTo(-10,-12); ctx.quadraticCurveTo(5,-12,15,0); ctx.quadraticCurveTo(5,12,-10,12); ctx.quadraticCurveTo(0,0,-10,-12); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-15,-5); ctx.lineTo(-6,-5); ctx.moveTo(-15,5); ctx.lineTo(-6,5); ctx.moveTo(15,0); ctx.lineTo(20,0); ctx.stroke();
             } else if (type === '3') {
-                // NOT
-                ctx.moveTo(-10, -10); ctx.lineTo(6, 0); ctx.lineTo(-10, 10); ctx.closePath(); ctx.stroke();
-                ctx.beginPath(); ctx.arc(9, 0, 3, 0, 2*Math.PI); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(-15, 0); ctx.lineTo(-10, 0); ctx.moveTo(12, 0); ctx.lineTo(17, 0); ctx.stroke();
+                ctx.moveTo(-10,-10); ctx.lineTo(6,0); ctx.lineTo(-10,10); ctx.closePath(); ctx.stroke();
+                ctx.beginPath(); ctx.arc(9,0,3,0,2*Math.PI); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-15,0); ctx.lineTo(-10,0); ctx.moveTo(12,0); ctx.lineTo(17,0); ctx.stroke();
             } else if (type === '4') {
-                // NAND
-                ctx.moveTo(-12, -10); ctx.lineTo(-2, -10); ctx.arc(-2, 0, 10, -Math.PI/2, Math.PI/2); ctx.lineTo(-12, 10); ctx.closePath(); ctx.stroke();
-                ctx.beginPath(); ctx.arc(11, 0, 3, 0, 2*Math.PI); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(-17, -5); ctx.lineTo(-12, -5); ctx.moveTo(-17, 5); ctx.lineTo(-12, 5); ctx.moveTo(14, 0); ctx.lineTo(19, 0); ctx.stroke();
+                ctx.moveTo(-12,-10); ctx.lineTo(-2,-10); ctx.arc(-2,0,10,-Math.PI/2,Math.PI/2); ctx.lineTo(-12,10); ctx.closePath(); ctx.stroke();
+                ctx.beginPath(); ctx.arc(11,0,3,0,2*Math.PI); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-17,-5); ctx.lineTo(-12,-5); ctx.moveTo(-17,5); ctx.lineTo(-12,5); ctx.moveTo(14,0); ctx.lineTo(19,0); ctx.stroke();
             } else if (type === '5') {
-                // NOR
-                ctx.moveTo(-12, -12); ctx.quadraticCurveTo(3, -12, 13, 0); ctx.quadraticCurveTo(3, 12, -12, 12); ctx.quadraticCurveTo(-2, 0, -12, -12); ctx.stroke();
-                ctx.beginPath(); ctx.arc(16, 0, 3, 0, 2*Math.PI); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(-17, -5); ctx.lineTo(-8, -5); ctx.moveTo(-17, 5); ctx.lineTo(-8, 5); ctx.moveTo(19, 0); ctx.lineTo(24, 0); ctx.stroke();
+                ctx.moveTo(-12,-12); ctx.quadraticCurveTo(3,-12,13,0); ctx.quadraticCurveTo(3,12,-12,12); ctx.quadraticCurveTo(-2,0,-12,-12); ctx.stroke();
+                ctx.beginPath(); ctx.arc(16,0,3,0,2*Math.PI); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-17,-5); ctx.lineTo(-8,-5); ctx.moveTo(-17,5); ctx.lineTo(-8,5); ctx.moveTo(19,0); ctx.lineTo(24,0); ctx.stroke();
             } else if (type === '6') {
-                // XOR
-                ctx.moveTo(-8, -12); ctx.quadraticCurveTo(7, -12, 17, 0); ctx.quadraticCurveTo(7, 12, -8, 12); ctx.quadraticCurveTo(2, 0, -8, -12); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(-12, -12); ctx.quadraticCurveTo(-2, 0, -12, 12); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(-17, -5); ctx.lineTo(-7, -5); ctx.moveTo(-17, 5); ctx.lineTo(-7, 5); ctx.moveTo(17, 0); ctx.lineTo(22, 0); ctx.stroke();
+                ctx.moveTo(-8,-12); ctx.quadraticCurveTo(7,-12,17,0); ctx.quadraticCurveTo(7,12,-8,12); ctx.quadraticCurveTo(2,0,-8,-12); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-12,-12); ctx.quadraticCurveTo(-2,0,-12,12); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-17,-5); ctx.lineTo(-7,-5); ctx.moveTo(-17,5); ctx.lineTo(-7,5); ctx.moveTo(17,0); ctx.lineTo(22,0); ctx.stroke();
             } else if (type === '7') {
-                // XNOR
-                ctx.moveTo(-10, -12); ctx.quadraticCurveTo(5, -12, 15, 0); ctx.quadraticCurveTo(5, 12, -10, 12); ctx.quadraticCurveTo(0, 0, -10, -12); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(-14, -12); ctx.quadraticCurveTo(-4, 0, -14, 12); ctx.stroke();
-                ctx.beginPath(); ctx.arc(18, 0, 3, 0, 2*Math.PI); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(-19, -5); ctx.lineTo(-9, -5); ctx.moveTo(-19, 5); ctx.lineTo(-9, 5); ctx.moveTo(21, 0); ctx.lineTo(26, 0); ctx.stroke();
+                ctx.moveTo(-10,-12); ctx.quadraticCurveTo(5,-12,15,0); ctx.quadraticCurveTo(5,12,-10,12); ctx.quadraticCurveTo(0,0,-10,-12); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-14,-12); ctx.quadraticCurveTo(-4,0,-14,12); ctx.stroke();
+                ctx.beginPath(); ctx.arc(18,0,3,0,2*Math.PI); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-19,-5); ctx.lineTo(-9,-5); ctx.moveTo(-19,5); ctx.lineTo(-9,5); ctx.moveTo(21,0); ctx.lineTo(26,0); ctx.stroke();
             }
         }
 
         function drawCircuit() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw Background Dot Grid
+            // Grid dots
             ctx.fillStyle = '#ddd';
-            for (let x = 0; x <= canvas.width; x += GRID) {
-                for (let y = 0; y <= canvas.height; y += GRID) {
-                    ctx.fillRect(x - 1, y - 1, 2, 2);
-                }
-            }
+            for (let gx = 0; gx <= canvas.width; gx += GRID)
+                for (let gy = 0; gy <= canvas.height; gy += GRID)
+                    ctx.fillRect(gx-1, gy-1, 2, 2);
 
-            // Draw Committed Elements
-            elements.forEach(el => {
+            // Placed elements
+            elements.forEach((el, idx) => {
                 ctx.strokeStyle = '#000'; ctx.fillStyle = '#000';
                 ctx.lineWidth = 2; ctx.lineJoin = 'round';
-
+                if (idx === selectedIdx && currentTool === 'S') {
+                    ctx.strokeStyle = 'var(--primary-color)';
+                    ctx.fillStyle   = 'var(--primary-color)';
+                }
                 if (el.type === 'W') {
                     ctx.beginPath();
                     ctx.moveTo(el.x1, el.y1); ctx.lineTo(el.x2, el.y2); ctx.stroke();
@@ -1801,16 +2083,23 @@ function initCircuitDrawers() {
                     ctx.translate(el.x, el.y);
                     ctx.rotate((el.rot || 0) * Math.PI / 180);
                     drawShape(ctx, el.type, el.label);
+                    if (idx === selectedIdx && currentTool === 'S') {
+                        ctx.strokeStyle = 'rgba(0,123,255,0.4)';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(-25, -25, 50, 50);
+                    }
                     ctx.restore();
                 }
             });
 
-            // Draw Live Preview
-            if (isHovered) {
+            // Cursor preview — only when mouse is over canvas
+            if (mouseX >= 0 && mouseX <= canvas.width && currentTool !== 'S') {
                 ctx.globalAlpha = 0.5;
+                ctx.strokeStyle = 'var(--primary-color)';
+                ctx.fillStyle   = 'var(--primary-color)';
+                ctx.lineWidth   = 2; ctx.lineJoin = 'round';
+
                 if (currentTool === 'W') {
-                    ctx.strokeStyle = 'var(--primary-color)'; ctx.fillStyle = 'var(--primary-color)';
-                    ctx.lineWidth = 2; 
                     if (wireStart) {
                         ctx.setLineDash([4, 4]);
                         ctx.beginPath(); ctx.moveTo(wireStart.x, wireStart.y); ctx.lineTo(mouseX, mouseY); ctx.stroke();
@@ -1818,39 +2107,42 @@ function initCircuitDrawers() {
                     }
                     ctx.beginPath(); ctx.arc(mouseX, mouseY, 3, 0, Math.PI*2); ctx.fill();
                 } else if (currentTool === 'X') {
-                    ctx.strokeStyle = 'red'; ctx.lineWidth = 1;
+                    ctx.strokeStyle = 'red';
+                    ctx.lineWidth = 1;
                     ctx.beginPath(); ctx.arc(mouseX, mouseY, 8, 0, Math.PI*2);
                     ctx.moveTo(mouseX-4, mouseY-4); ctx.lineTo(mouseX+4, mouseY+4);
-                    ctx.moveTo(mouseX+4, mouseY-4); ctx.lineTo(mouseX-4, mouseY+4); ctx.stroke();
+                    ctx.moveTo(mouseX+4, mouseY-4); ctx.lineTo(mouseX-4, mouseY+4);
+                    ctx.stroke();
                 } else {
-                    ctx.strokeStyle = 'var(--primary-color)'; ctx.fillStyle = 'var(--primary-color)';
-                    ctx.lineWidth = 2; ctx.lineJoin = 'round';
                     ctx.save();
                     ctx.translate(mouseX, mouseY);
                     ctx.rotate(currentRot * Math.PI / 180);
-                    
-                    let previewLabel = undefined;
-                    if (currentTool === 'M') previewLabel = 'IC';
-                    if (currentTool === 'N') previewLabel = 'NET';
-                    
-                    drawShape(ctx, currentTool, previewLabel);
+                    drawShape(ctx, currentTool, currentTool === 'M' ? 'IC' : currentTool === 'N' ? 'NET' : undefined);
                     ctx.restore();
                 }
                 ctx.globalAlpha = 1.0;
             }
-
-            // Draw Status HUD
-            const mapTools = {
-                'F':'nMOS', 'E':'pMOS', '1':'AND', '2':'OR', '3':'NOT', '4':'NAND', '5':'NOR', '6':'XOR', '7':'XNOR',
-                'X':'Delete', 'Q':'BJT', 'J':'Dep I-Src', 'U':'Dep V-Src', 'Z':'Zener', 'N':'Label'
-            };
-            const toolName = mapTools[currentTool] || currentTool;
-            
-            ctx.fillStyle = 'var(--primary-color)'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'left';
-            ctx.fillText(`Active Tool: ${toolName} | Rot: ${currentRot}°`, 8, 20);
         }
+
+        drawCircuit();
     });
     circuitDrawers.length = 0;
+}
+
+function postRenderInit() {
+    if (window.renderMathInElement) {
+        const conf = {
+            delimiters: [
+                { left: '$$', right: '$$', display: true },
+                { left: '$',  right: '$',  display: false },
+            ],
+            throwOnError: false,
+        };
+        const nl = document.getElementById('nodes-layer');
+        if (nl) renderMathInElement(nl, conf);
+    }
+    initDesmosCalculators();
+    initCircuitDrawers();
 }
 
 // ─────────────────────────────────────────────
@@ -2173,9 +2465,7 @@ function renderNodes() {
         });
     }
 
-    // Initialize Interactive Subsystems
-    initDesmosCalculators();
-    initCircuitDrawers();
+    postRenderInit();
 }
 
 // ─────────────────────────────────────────────
@@ -3054,11 +3344,30 @@ function onNodeClick(e, nodeId) {
 }
 
 function selectNode(nodeId) {
+    const prevId = selectedNodeId;
     selectedNodeId = nodeId;
     selectedEdgeId = null;
-    document.querySelectorAll('.node').forEach(el => el.classList.remove('selected'));
-    if (nodeId) document.getElementById('node-'+nodeId)?.classList.add('selected');
     document.getElementById('edge-sidebar').classList.add('hidden');
+
+    if (!nodeId) {
+        // Deselecting — just remove classes and hide sidebar, no full re-render
+        document.querySelectorAll('.node').forEach(el => el.classList.remove('selected'));
+        // Remove resize handles from previously selected node without re-render
+        if (prevId) {
+            const prevEl = document.getElementById('node-' + prevId);
+            if (prevEl) {
+                prevEl.querySelectorAll('.resize-handle').forEach(h => h.remove());
+                prevEl.classList.remove('selected');
+            }
+        }
+        renderSidebar();
+        redrawEdges();
+        return;
+    }
+
+    // Selecting a node — need full re-render to add resize handles
+    document.querySelectorAll('.node').forEach(el => el.classList.remove('selected'));
+    document.getElementById('node-'+nodeId)?.classList.add('selected');
     renderSidebar();
     redrawEdges();
     renderNodes();
@@ -3749,10 +4058,13 @@ document.addEventListener('keydown', e => {
 
     if (e.key === 'Delete' || e.key === 'Backspace') deleteSelectedNode();
     
-    if (e.key === 'Escape') { 
-        setMode('select'); 
-        selectNode(null); 
-        if (typeof cancelDupeLink === 'function' && dupeMasterId) cancelDupeLink();
+    if (e.key === 'Escape') {
+        setMode('select');
+        if (dupeMasterId) {
+            cancelDupeLink(); // this calls renderSidebar internally, skip selectNode
+        } else {
+            selectNode(null);
+        }
     }
     
     if (e.key === 'n' || e.key === 'N') openNewNodeModal();
